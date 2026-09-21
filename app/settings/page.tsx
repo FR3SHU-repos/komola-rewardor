@@ -1,0 +1,14 @@
+import { Bell, Building2, ShieldCheck } from "lucide-react";
+import { RewardorShell } from "@/shared/components/RewardorShell";
+
+export default function Settings() {
+  return <RewardorShell>
+    <header className="border-b border-border bg-surface-card px-5 py-5 sm:px-8"><p className="m-0 text-sm font-semibold text-foreground-muted">Workspace preferences</p><h1 className="m-0 mt-1 text-2xl font-black text-foreground-heading">Settings</h1></header>
+    <div className="max-w-3xl space-y-6 p-5 sm:p-8">
+      <section className="rounded-2xl border border-border bg-surface-card p-6"><div className="flex items-start gap-4"><Building2 className="mt-1 text-primary" size={20}/><div className="flex-1"><h2 className="m-0 text-lg font-black text-foreground-heading">Rewardor profile</h2><p className="m-0 mt-1 text-sm text-foreground-muted">Shown on campaign details and buyer receipts.</p><div className="mt-5 grid gap-5 sm:grid-cols-2"><label className="text-sm font-bold text-foreground-heading">Organization name<input className="mt-2 w-full rounded-xl border border-border px-4 py-3 text-sm outline-none" defaultValue="Sahaja Foods"/></label><label className="text-sm font-bold text-foreground-heading">Support phone<input className="mt-2 w-full rounded-xl border border-border px-4 py-3 text-sm outline-none" defaultValue="98765 43210" inputMode="numeric" maxLength={10}/></label></div></div></div></section>
+      <section className="rounded-2xl border border-border bg-surface-card p-6"><div className="flex items-start gap-4"><Bell className="mt-1 text-primary" size={20}/><div><h2 className="m-0 text-lg font-black text-foreground-heading">Notifications</h2><p className="m-0 mt-1 text-sm text-foreground-muted">Choose which campaign activity reaches your team.</p><label className="mt-5 flex items-center gap-3 text-sm font-semibold text-foreground-heading"><input type="checkbox" defaultChecked/> New claim activity</label><label className="mt-3 flex items-center gap-3 text-sm font-semibold text-foreground-heading"><input type="checkbox" defaultChecked/> Campaign expiry reminders</label></div></div></section>
+      <section className="rounded-2xl border border-border bg-surface-card p-6"><div className="flex items-start gap-4"><ShieldCheck className="mt-1 text-primary" size={20}/><div><h2 className="m-0 text-lg font-black text-foreground-heading">Access and moderation</h2><p className="m-0 mt-1 text-sm text-foreground-muted">Your workspace is approved for publishing campaigns.</p><p className="mt-4 inline-flex rounded-full bg-status-success-surface px-3 py-1 text-xs font-bold text-status-success">Approved Rewardor</p></div></div></section>
+      <button className="rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground">Save changes</button>
+    </div>
+  </RewardorShell>;
+}
