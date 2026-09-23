@@ -9,7 +9,7 @@ This app is a dedicated Rewardor experience sharing KOMOLA's existing Go API and
 5. The frontend must not calculate eligibility, quotas, reward values, or redemption authority. The backend is authoritative.
 6. Use the existing Supabase Auth and organization/member authorization model.
 7. Keep campaign authoring and analytics out of the cashier POS workflow.
-8. Treat demo data as temporary UI scaffolding. Replace it with typed API clients when Rewardor endpoints land.
+8. Treat demo data as temporary UI scaffolding. Campaign and overview screens use the typed Go API clients; do not reintroduce demo fallback data for API failures.
 9. Use semantic design tokens from `app/globals.css`; do not add raw palette colors in pages.
 10. Run `npm run typecheck` and `npm run build` before handoff.
 11. Reward values are Komola points only. Do not add cash, rupee, percentage-discount, cashback, or delivery-credit reward types.

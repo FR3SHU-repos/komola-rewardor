@@ -17,8 +17,11 @@ The implemented campaign API contract is documented in
 [`../cross-platform-assets/rewardor/REWARDOR-API.md`](../cross-platform-assets/rewardor/REWARDOR-API.md).
 The current authoring endpoints are campaign listing, overview metrics, draft
 creation, detail, draft/paused editing, image URL updates, and publish/pause/
-archive transitions. Buyer discovery, claims, redemptions, and analytics APIs
-are not implemented yet.
+archive transitions. The shared Go API also provides buyer location-filtered
+campaign discovery and claim creation. Campaign responses include readable
+public slugs and the provider organization name. Rewardor claim listing and
+summary metrics and initial analytics are now API-backed. POS redemption and
+moderation remain future API work.
 
 Routes:
 
@@ -46,6 +49,7 @@ bucket must be public-read with authenticated-user upload access, as documented
 for POS product images in `../komola-pos/docs/PRODUCT-IMAGES.md`. Never expose a
 Supabase service-role key in this app.
 
-The Go backend must have migrations `000023_reward_campaigns`,
-`000025_reward_campaign_lifecycle`, and `000026_rewardor_organization_type`
-applied before using campaign creation and Rewardor registration.
+The Go backend must have migrations `000023_reward_campaigns` through
+`000029_reward_campaign_slugs` applied before using the complete campaign and
+buyer-claim flow. The API migration runner is the source of truth; do not create
+application tables from the Rewardor browser.

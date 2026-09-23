@@ -1,8 +1,25 @@
 export type ApiResult<T> = { success: boolean; message: string; data: T | null; status: number };
 export type CampaignStatus = "draft" | "published" | "paused" | "expired" | "archived";
-export type RewardCampaign = { id: string; title: string; description: string; campaignType: "product" | "offer" | "online_cashback"; rewardType: "fixed_points" | "bonus_points" | "points_multiplier"; points: number; totalClaimsAllowed: number; perBuyerLimit: number; timerEnabled: boolean; startsAt: string | null; endsAt: string | null; imageUrl: string; status: CampaignStatus; claims: number; locationCode: string; locationName: string; createdAt?: string | null; updatedAt?: string | null };
-export type RewardCampaignInput = Omit<RewardCampaign, "id" | "status" | "claims" | "locationName" | "createdAt" | "updatedAt">;
+export type RewardCampaign = { id: string; slug: string; title: string; description: string; campaignType: "product" | "offer" | "online_cashback"; rewardType: "fixed_points" | "bonus_points" | "points_multiplier"; points: number; totalClaimsAllowed: number; perBuyerLimit: number; timerEnabled: boolean; startsAt: string | null; endsAt: string | null; imageUrl: string; status: CampaignStatus; claims: number; locationCode: string; locationName: string; providerName: string; deliveryOptions: Array<"home_delivery" | "store_pickup">; pickupStoreName: string | null; pickupStorePhone: string | null; pickupStoreAddress: Record<string, string>; createdAt?: string | null; updatedAt?: string | null };
+export type RewardCampaignInput = Omit<RewardCampaign, "id" | "slug" | "status" | "claims" | "locationName" | "providerName" | "createdAt" | "updatedAt">;
 export type RewardorOverview = { campaigns: number; publishedCampaigns: number; draftCampaigns: number; pausedCampaigns: number; archivedCampaigns: number; totalClaimsAllowed: number; potentialPoints: number };
+export type RewardorClaimStatus = "claimed" | "approved" | "redeemed" | "cancelled";
+export type RewardorClaimActivity = { id: string; claimCode: string; status: RewardorClaimStatus; claimedAt: string; redeemedAt: string | null; approvedAt?: string | null; decisionReason?: string; campaignId: string; campaign: string; campaignSlug: string; buyer: string; buyerPhone: string; deliveryAddress?: Record<string, string>; fulfillmentMethod: "home_delivery" | "store_pickup"; pickupStoreName?: string | null; pickupStorePhone?: string | null; pickupStoreAddress?: Record<string, string>; points: number };
+export type RewardorClaimsSummary = { totalClaimsAllowed: number; claimed: number; redeemed: number; pendingPoints: number };
+export type RewardorClaimsData = { items: RewardorClaimActivity[]; summary: RewardorClaimsSummary };
+export type RewardorAnalyticsPoint = { date: string; claims: number };
+export type RewardorAnalytics = {
+  periodDays: number;
+  claims: number;
+  redemptions: number;
+  conversionRate: number;
+  pointsIssued: number;
+  claimsChangePercent: number | null;
+  redemptionsChangePercent: number | null;
+  conversionChangePercent: number | null;
+  pointsIssuedChangePercent: number | null;
+  series: RewardorAnalyticsPoint[];
+};
 export type RewardorOrganizationRegistration = {
   organization: {
     legalName: string;
@@ -84,6 +101,16 @@ export async function rewardorApi<T>(path: string, options: RequestInit = {}): P
 export const listRewardCampaigns = () => rewardorApi<{ items: RewardCampaign[] }>("reward-campaigns");
 export const getRewardorBootstrap = () => rewardorApi<RewardorBootstrap>("pos/bootstrap");
 export const getRewardorOverview = () => rewardorApi<RewardorOverview>("reward-campaigns/overview");
+export const getRewardorClaims = (search = "", status = "") => {
+  const params = new URLSearchParams();
+  if (search.trim()) params.set("search", search.trim());
+  if (status) params.set("status", status);
+  const query = params.toString();
+  return rewardorApi<RewardorClaimsData>(`reward-campaigns/claims${query ? `?${query}` : ""}`);
+};
+export const approveRewardClaim = (claimId: string) => rewardorApi<{ id: string; status: string; points: number }>(`reward-campaigns/claims/${encodeURIComponent(claimId)}/approve`, { method: "POST", body: JSON.stringify({}) });
+export const rejectRewardClaim = (claimId: string, reason = "") => rewardorApi<{ id: string; status: string; points: number }>(`reward-campaigns/claims/${encodeURIComponent(claimId)}/reject`, { method: "POST", body: JSON.stringify({ reason }) });
+export const getRewardorAnalytics = (days = 30) => rewardorApi<RewardorAnalytics>(`reward-campaigns/analytics?days=${days}`);
 export const getRewardCampaign = (id: string) => rewardorApi<RewardCampaign>(`reward-campaigns/${encodeURIComponent(id)}`);
 export const createRewardCampaign = (body: RewardCampaignInput) => rewardorApi<RewardCampaign>("reward-campaigns", { method: "POST", body: JSON.stringify(body) });
 export const updateRewardCampaign = (id: string, body: RewardCampaignInput) => rewardorApi<RewardCampaign>(`reward-campaigns/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(body) });
