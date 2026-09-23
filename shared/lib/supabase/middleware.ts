@@ -4,6 +4,10 @@ import { NextResponse, type NextRequest } from "next/server";
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
+function isTransientAuthError(error: { name?: string; message?: string } | null): boolean {
+  return Boolean(error && (error.name === "AuthRetryableFetchError" || /network|fetch|timeout/i.test(error.message ?? "")));
+}
+
 export async function updateSession(request: NextRequest): Promise<NextResponse> {
   let response = NextResponse.next({ request });
   if (!URL || !KEY) return response;
@@ -21,7 +25,8 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
       },
     },
   });
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (!user && isTransientAuthError(authError)) return response;
   if (!user) {
     const login = request.nextUrl.clone();
     login.pathname = "/login";

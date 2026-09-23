@@ -1,10 +1,12 @@
 export type ApiResult<T> = { success: boolean; message: string; data: T | null; status: number };
 export type CampaignStatus = "draft" | "published" | "paused" | "expired" | "archived";
-export type RewardCampaign = { id: string; slug: string; title: string; description: string; campaignType: "product" | "offer" | "online_cashback"; rewardType: "fixed_points" | "bonus_points" | "points_multiplier"; points: number; totalClaimsAllowed: number; perBuyerLimit: number; timerEnabled: boolean; startsAt: string | null; endsAt: string | null; imageUrl: string; status: CampaignStatus; claims: number; locationCode: string; locationName: string; providerName: string; deliveryOptions: Array<"home_delivery" | "store_pickup">; pickupStoreName: string | null; pickupStorePhone: string | null; pickupStoreAddress: Record<string, string>; createdAt?: string | null; updatedAt?: string | null };
+export type FulfillmentMethod = "home_delivery" | "store_pickup" | "online_redemption";
+export type ApprovalMode = "automatic" | "manual";
+export type RewardCampaign = { id: string; slug: string; title: string; description: string; campaignType: "product" | "offer" | "online_cashback"; rewardType: "fixed_points" | "bonus_points" | "points_multiplier"; points: number; totalClaimsAllowed: number; perBuyerLimit: number; timerEnabled: boolean; startsAt: string | null; endsAt: string | null; imageUrl: string; status: CampaignStatus; claims: number; locationCode: string; locationName: string; providerName: string; approvalMode: ApprovalMode; deliveryOptions: FulfillmentMethod[]; pickupStoreName: string | null; pickupStorePhone: string | null; pickupStoreAddress: Record<string, string>; createdAt?: string | null; updatedAt?: string | null };
 export type RewardCampaignInput = Omit<RewardCampaign, "id" | "slug" | "status" | "claims" | "locationName" | "providerName" | "createdAt" | "updatedAt">;
 export type RewardorOverview = { campaigns: number; publishedCampaigns: number; draftCampaigns: number; pausedCampaigns: number; archivedCampaigns: number; totalClaimsAllowed: number; potentialPoints: number };
 export type RewardorClaimStatus = "claimed" | "approved" | "redeemed" | "cancelled";
-export type RewardorClaimActivity = { id: string; claimCode: string; status: RewardorClaimStatus; claimedAt: string; redeemedAt: string | null; approvedAt?: string | null; decisionReason?: string; campaignId: string; campaign: string; campaignSlug: string; buyer: string; buyerPhone: string; deliveryAddress?: Record<string, string>; fulfillmentMethod: "home_delivery" | "store_pickup"; pickupStoreName?: string | null; pickupStorePhone?: string | null; pickupStoreAddress?: Record<string, string>; points: number };
+export type RewardorClaimActivity = { id: string; claimCode: string; status: RewardorClaimStatus; claimedAt: string; redeemedAt: string | null; approvedAt?: string | null; decisionReason?: string; campaignId: string; campaign: string; campaignSlug: string; buyer: string; buyerPhone: string; deliveryAddress?: Record<string, string>; fulfillmentMethod: FulfillmentMethod; pickupStoreName?: string | null; pickupStorePhone?: string | null; pickupStoreAddress?: Record<string, string>; points: number };
 export type RewardorClaimsSummary = { totalClaimsAllowed: number; claimed: number; redeemed: number; pendingPoints: number };
 export type RewardorClaimsData = { items: RewardorClaimActivity[]; summary: RewardorClaimsSummary };
 export type RewardorAnalyticsPoint = { date: string; claims: number };
@@ -52,13 +54,20 @@ export type RewardorBootstrap = {
 const base = (process.env.NEXT_PUBLIC_GO_API_URL ?? "").replace(/\/$/, "");
 async function accessToken(): Promise<string | null> {
   if (typeof window === "undefined") return null;
-  const { createBrowserClient } = await import("@supabase/ssr");
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
-  if (!url || !key) return null;
-  const client = createBrowserClient(url, key);
-  const { data } = await client.auth.getSession();
+  const { createAuthBrowserClient } = await import("@/shared/lib/supabase/auth-client");
+  const { data } = await createAuthBrowserClient().auth.getSession();
   return data.session?.access_token ?? null;
+}
+
+async function refreshAccessToken(): Promise<string | null> {
+  if (typeof window === "undefined") return null;
+  try {
+    const { createAuthBrowserClient } = await import("@/shared/lib/supabase/auth-client");
+    const { data } = await createAuthBrowserClient().auth.refreshSession();
+    return data.session?.access_token ?? null;
+  } catch {
+    return null;
+  }
 }
 
 async function resolveOrganizationId(token: string | null): Promise<string | null> {
@@ -72,24 +81,37 @@ async function resolveOrganizationId(token: string | null): Promise<string | nul
     });
     const body = await response.json().catch(() => ({}));
     const organizationId = body?.data?.user?.orgId;
-    if (typeof organizationId === "string" && organizationId) {
+    if (response.ok && typeof organizationId === "string" && organizationId) {
       window.localStorage.setItem("komola:rewardor-organization-id", organizationId);
       return organizationId;
     }
-    window.localStorage.removeItem("komola:rewardor-organization-id");
+    if (response.ok || [401, 403, 404].includes(response.status)) {
+      // Organization selection is scoped to the current Supabase account.
+      // Clear stale selections after switching accounts or losing access.
+      window.localStorage.removeItem("komola:rewardor-organization-id");
+      return null;
+    }
   } catch {
-    // The primary request below returns the user-facing error.
+    // Keep the previous organization selection during transient failures.
   }
-  return null;
+  return stored;
 }
 
 export async function rewardorApi<T>(path: string, options: RequestInit = {}): Promise<ApiResult<T>> {
   try {
     const token = await accessToken();
     const organizationId = await resolveOrganizationId(token);
-    const response = await fetch(`${base}/api/v1/${path.replace(/^\//, "")}`, { ...options, credentials: "include", headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(organizationId ? { "X-Organization-ID": organizationId } : {}), ...(options.headers ?? {}) } });
+    const target = `${base}/api/v1/${path.replace(/^\//, "")}`;
+    const requestWithToken = (accessToken: string | null) => fetch(target, { ...options, credentials: "include", headers: { "Content-Type": "application/json", ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}), ...(organizationId ? { "X-Organization-ID": organizationId } : {}), ...(options.headers ?? {}) } });
+    let response = await requestWithToken(token);
+    if (response.status === 401) {
+      const refreshedToken = await refreshAccessToken();
+      if (refreshedToken && refreshedToken !== token) {
+        response = await requestWithToken(refreshedToken);
+      }
+    }
     const body = await response.json().catch(() => ({}));
-    const message = /seller identity not found|active organization required/i.test(String(body.message ?? ""))
+    const message = /seller identity not found|active organization required|select an active rewardor organization/i.test(String(body.message ?? ""))
       ? "This account is not linked to an active Rewardor organization. Create one with Rewardor registration or sign in with an authorized account."
       : body.message ?? response.statusText;
     return { success: response.ok && body.success === true, message, data: body.data ?? null, status: response.status };
