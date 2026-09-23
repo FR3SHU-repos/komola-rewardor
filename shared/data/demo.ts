@@ -6,6 +6,22 @@ export const campaigns: Campaign[] = [
   { id:"fpo-friends", title:"FPO friends", reward:"1,000 Komola points", claims:0, limit:100, status:"Draft", ends:"—", category:"Member segment" },
   { id:"monsoon", title:"Monsoon pantry", reward:"750 Komola points", claims:341, limit:350, status:"Paused", ends:"25 Sep 2026", category:"Location" },
 ];
+const CAMPAIGNS_KEY = "komola:rewardor-campaigns";
+
+export function getStoredCampaigns(): Campaign[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(CAMPAIGNS_KEY) ?? "[]");
+    return Array.isArray(stored) ? stored : [];
+  } catch {
+    return [];
+  }
+}
+
+export function storeCampaign(campaign: Campaign): void {
+  window.localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify([...getStoredCampaigns(), campaign]));
+}
+
 export const recentClaims = [
   { code:"KM-8J4P", campaign:"Fresh harvest welcome", buyer:"Ananya R.", status:"Claimed", date:"Today, 10:42 AM" },
   { code:"KM-2Q7M", campaign:"Millet Monday", buyer:"Ravi K.", status:"Redeemed", date:"Today, 9:18 AM" },
