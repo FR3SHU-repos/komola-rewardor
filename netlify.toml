@@ -1,0 +1,5 @@
+[build.environment]
+  # These NEXT_PUBLIC_* values are intentionally exposed to the browser by
+  # Next.js and are not server secrets. Netlify's scanner otherwise flags
+  # their generated server/edge bundles during deployment.
+  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_GO_API_URL,NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,NEXT_PUBLIC_SUPABASE_URL"
