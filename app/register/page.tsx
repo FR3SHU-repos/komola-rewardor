@@ -103,7 +103,8 @@ export default function RegisterPage() {
         if (form.password.length < 8) { setError("Password must be at least 8 characters."); return; }
         if (form.password !== form.confirm) { setError("Passwords do not match."); return; }
         sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draftForStorage(form)));
-        const { data, error: authError } = await client.auth.signUp({ email: form.email.trim().toLowerCase(), password: form.password, options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=/register`, data: { display_name: form.fullName.trim(), account_type: "rewardor" } } });
+        const phoneE164 = normalizeIndianMobile(form.phone);
+        const { data, error: authError } = await client.auth.signUp({ email: form.email.trim().toLowerCase(), password: form.password, options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=/register`, data: { display_name: form.fullName.trim(), account_type: "rewardor", phone_e164: phoneE164 } } });
         if (authError) {
           setError(/already registered|already exists/i.test(authError.message) ? "This email is already registered. Sign in instead." : "Registration could not be completed. Please try again.");
           return;
