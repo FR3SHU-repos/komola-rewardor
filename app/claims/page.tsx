@@ -243,6 +243,14 @@ export default function ClaimsPage() {
                     {formatDate(item.claimedAt)}
                   </span>
                 </div>
+                <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm">
+                  <p className="font-bold text-foreground-heading">
+                    Verify buyer before processing
+                  </p>
+                  <p className="mt-1 text-foreground-muted">
+                    Match the claim code <span className="font-mono font-bold text-primary">{item.claimCode}</span> with the buyer’s mobile number <span className="font-bold text-foreground-heading">{item.buyerPhone || "Not available"}</span>.
+                  </p>
+                </div>
                 <div className="mt-4 grid gap-3 rounded-xl bg-surface p-4 text-sm md:grid-cols-[1fr_1fr_auto] md:items-start">
                   <div>
                     <p className="font-bold text-foreground-heading">
