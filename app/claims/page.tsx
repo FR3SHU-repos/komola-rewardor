@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { RewardorShell } from "@/shared/components/RewardorShell";
 import { StatusBadge } from "@/shared/components/StatusBadge";
@@ -10,14 +10,24 @@ import {
   rejectRewardClaim,
   type RewardorClaimActivity,
   type RewardorClaimStatus,
+  type RewardorClaimsMeta,
   type RewardorClaimsSummary,
 } from "@/shared/lib/api";
+
+const CLAIMS_PAGE_SIZE = 10;
 
 const emptySummary: RewardorClaimsSummary = {
   totalClaimsAllowed: 0,
   claimed: 0,
   redeemed: 0,
   pendingPoints: 0,
+};
+
+const emptyMeta: RewardorClaimsMeta = {
+  page: 1,
+  limit: CLAIMS_PAGE_SIZE,
+  total: 0,
+  totalPages: 1,
 };
 
 function statusLabel(status: RewardorClaimStatus): string {
@@ -52,8 +62,10 @@ function csvCell(value: string | number): string {
 export default function ClaimsPage() {
   const [items, setItems] = useState<RewardorClaimActivity[]>([]);
   const [summary, setSummary] = useState<RewardorClaimsSummary>(emptySummary);
+  const [meta, setMeta] = useState<RewardorClaimsMeta>(emptyMeta);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"" | RewardorClaimStatus>("");
+  const [page, setPage] = useState(1);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [busyClaim, setBusyClaim] = useState<string | null>(null);
@@ -62,12 +74,19 @@ export default function ClaimsPage() {
   useEffect(() => {
     let alive = true;
     setLoading(true);
-    void getRewardorClaims(search, status).then((result) => {
+    void getRewardorClaims(search, status, page).then((result) => {
       if (!alive) return;
       if (result.success && result.data) {
+        const nextMeta = result.data.meta ?? emptyMeta;
         setItems(result.data.items);
         setSummary(result.data.summary);
+        setMeta(nextMeta);
         setError("");
+        if (page > nextMeta.totalPages) {
+          setPage(nextMeta.totalPages);
+          setLoading(false);
+          return;
+        }
       } else {
         setError(result.message);
       }
@@ -76,7 +95,7 @@ export default function ClaimsPage() {
     return () => {
       alive = false;
     };
-  }, [search, status, reload]);
+  }, [search, status, page, reload]);
 
   async function decide(
     item: RewardorClaimActivity,
@@ -183,16 +202,20 @@ export default function ClaimsPage() {
             <Search size={17} className="text-foreground-muted" />
             <input
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setPage(1);
+              }}
               className="min-w-48 flex-1 bg-transparent text-sm outline-none"
               placeholder="Search claim code, campaign, or buyer"
               aria-label="Search claims"
             />
             <select
               value={status}
-              onChange={(event) =>
-                setStatus(event.target.value as "" | RewardorClaimStatus)
-              }
+              onChange={(event) => {
+                setStatus(event.target.value as "" | RewardorClaimStatus);
+                setPage(1);
+              }}
               className="rounded-lg border border-border bg-surface-card px-3 py-2 text-sm font-semibold text-foreground-heading"
               aria-label="Filter claim status"
             >
@@ -310,6 +333,37 @@ export default function ClaimsPage() {
               </div>
             ))
           )}
+          {meta.total > 0 ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border p-4 text-sm text-foreground-muted">
+              <p className="m-0">
+                Showing {(meta.page - 1) * meta.limit + 1}–
+                {Math.min(meta.page * meta.limit, meta.total)} of {meta.total}
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPage((value) => Math.max(1, value - 1))}
+                  disabled={loading || meta.page <= 1}
+                  className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-2 font-bold text-foreground-heading disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <ChevronLeft size={16} /> Previous
+                </button>
+                <span className="min-w-24 text-center font-semibold">
+                  Page {meta.page} of {meta.totalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPage((value) => Math.min(meta.totalPages, value + 1))
+                  }
+                  disabled={loading || meta.page >= meta.totalPages}
+                  className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-2 font-bold text-foreground-heading disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Next <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
     </RewardorShell>

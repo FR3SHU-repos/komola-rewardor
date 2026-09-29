@@ -8,7 +8,8 @@ export type RewardorOverview = { campaigns: number; publishedCampaigns: number; 
 export type RewardorClaimStatus = "claimed" | "approved" | "redeemed" | "cancelled";
 export type RewardorClaimActivity = { id: string; claimCode: string; status: RewardorClaimStatus; claimedAt: string; redeemedAt: string | null; approvedAt?: string | null; decisionReason?: string; campaignId: string; campaign: string; campaignSlug: string; buyer: string; buyerPhone: string; deliveryAddress?: Record<string, string>; fulfillmentMethod: FulfillmentMethod; pickupStoreName?: string | null; pickupStorePhone?: string | null; pickupStoreAddress?: Record<string, string>; points: number };
 export type RewardorClaimsSummary = { totalClaimsAllowed: number; claimed: number; redeemed: number; pendingPoints: number };
-export type RewardorClaimsData = { items: RewardorClaimActivity[]; summary: RewardorClaimsSummary };
+export type RewardorClaimsMeta = { page: number; limit: number; total: number; totalPages: number };
+export type RewardorClaimsData = { items: RewardorClaimActivity[]; summary: RewardorClaimsSummary; meta: RewardorClaimsMeta };
 export type RewardorAnalyticsPoint = { date: string; claims: number };
 export type RewardorAnalytics = {
   periodDays: number;
@@ -123,10 +124,12 @@ export async function rewardorApi<T>(path: string, options: RequestInit = {}): P
 export const listRewardCampaigns = () => rewardorApi<{ items: RewardCampaign[] }>("reward-campaigns");
 export const getRewardorBootstrap = () => rewardorApi<RewardorBootstrap>("pos/bootstrap");
 export const getRewardorOverview = () => rewardorApi<RewardorOverview>("reward-campaigns/overview");
-export const getRewardorClaims = (search = "", status = "") => {
+export const getRewardorClaims = (search = "", status = "", page = 1) => {
   const params = new URLSearchParams();
   if (search.trim()) params.set("search", search.trim());
   if (status) params.set("status", status);
+  params.set("page", String(Math.max(1, page)));
+  params.set("limit", "10");
   const query = params.toString();
   return rewardorApi<RewardorClaimsData>(`reward-campaigns/claims${query ? `?${query}` : ""}`);
 };
