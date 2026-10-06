@@ -57,7 +57,12 @@ export type RewardorBootstrap = {
     locations?: Array<{ id: string; code: string; name: string; active: boolean }>;
   };
 };
-const base = (process.env.NEXT_PUBLIC_GO_API_URL ?? "").replace(/\/$/, "");
+const configuredBase = (process.env.NEXT_PUBLIC_GO_API_URL ?? "").replace(/\/$/, "");
+const base = /^https?:\/\//i.test(configuredBase)
+  ? configuredBase
+  : process.env.NODE_ENV === "production"
+    ? "https://fr3shu-go-backend-api.onrender.com"
+    : "";
 async function accessToken(): Promise<string | null> {
   if (typeof window === "undefined") return null;
   const { createAuthBrowserClient } = await import("@/shared/lib/supabase/auth-client");
