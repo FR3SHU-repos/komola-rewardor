@@ -41,6 +41,7 @@ export default function RegisterPage() {
   const [form, setForm] = useState<RegistrationForm>(emptyForm);
   const [sessionReady, setSessionReady] = useState(false);
   const [privacyAcknowledged, setPrivacyAcknowledged] = useState(false);
+  const [adultAcknowledged, setAdultAcknowledged] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -91,6 +92,7 @@ export default function RegisterPage() {
     if (busy) return;
     setError("");
     if (!privacyAcknowledged) return setError("Please review and acknowledge the privacy notice before creating your account.");
+    if (!adultAcknowledged) return setError("KOMOLA accounts are currently for users aged 18 and above.");
     if (form.fullName.trim().length < 2) return setError("Enter your full name.");
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return setError("Enter a valid email address.");
     if (form.displayName.trim().length < 2) return setError("Enter your organization name.");
@@ -106,7 +108,7 @@ export default function RegisterPage() {
         if (form.password !== form.confirm) { setError("Passwords do not match."); return; }
         sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draftForStorage(form)));
         const phoneE164 = normalizeIndianMobile(form.phone);
-        const { data, error: authError } = await client.auth.signUp({ email: form.email.trim().toLowerCase(), password: form.password, options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=/register`, data: { display_name: form.fullName.trim(), account_type: "rewardor", phone_e164: phoneE164 } } });
+        const { data, error: authError } = await client.auth.signUp({ email: form.email.trim().toLowerCase(), password: form.password, options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=/register`, data: { display_name: form.fullName.trim(), account_type: "rewardor", phone_e164: phoneE164, adult_account_acknowledged: true } } });
         if (authError) {
           setError(/already registered|already exists/i.test(authError.message) ? "This email is already registered. Sign in instead." : "Registration could not be completed. Please try again.");
           return;
@@ -136,6 +138,7 @@ export default function RegisterPage() {
     <fieldset className="space-y-4"><legend className="text-lg font-black text-foreground-heading">Organization details</legend>{field("displayName", "Organization name", { autoComplete: "organization", placeholder: "Name buyers will see" })}{field("legalName", "Legal name (optional)", { autoComplete: "organization" })}{field("phone", "Support phone", { inputMode: "tel", autoComplete: "tel-national", placeholder: "98765 43210", maxLength: 10 })}<p className="-mt-2 text-xs font-semibold text-status-danger"><span aria-hidden="true">*</span> This 10-digit Indian phone number must be unique across KOMOLA accounts.</p></fieldset>
     <fieldset className="space-y-4"><legend className="text-lg font-black text-foreground-heading">Visakhapatnam location</legend>{field("line1", "Address line 1", { autoComplete: "address-line1", placeholder: "Building, street or area" })}{field("line2", "Address line 2 (optional)", { autoComplete: "address-line2", placeholder: "Landmark or locality" })}<div className="grid gap-4 sm:grid-cols-2">{field("city", "City", { autoComplete: "address-level2" })}{field("state", "State", { autoComplete: "address-level1" })}</div>{field("postalCode", "PIN code", { inputMode: "numeric", autoComplete: "postal-code", placeholder: "6-digit PIN code", maxLength: 6 })}</fieldset>
     <label className="flex items-start gap-3 rounded-xl bg-surface p-3 text-xs leading-5 text-foreground-muted"><input type="checkbox" className="mt-1 h-4 w-4 accent-primary" checked={privacyAcknowledged} onChange={(event) => setPrivacyAcknowledged(event.target.checked)} /><span>I have read the <Link href="/privacy" target="_blank" className="font-semibold text-primary underline">KOMOLA privacy notice</Link> and understand the account, organization, campaign and claim-verification processing described there. <span className="text-status-danger">*</span></span></label>
+    <label className="flex items-start gap-3 rounded-xl bg-surface p-3 text-xs leading-5 text-foreground-muted"><input type="checkbox" className="mt-1 h-4 w-4 accent-primary" checked={adultAcknowledged} onChange={(event) => setAdultAcknowledged(event.target.checked)} /><span>I confirm that I am 18 years of age or older. KOMOLA currently does not offer child accounts. <span className="text-status-danger">*</span></span></label>
     {error ? <p role="alert" aria-live="polite" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
     <button type="submit" disabled={busy} className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground transition hover:bg-primary-hover disabled:opacity-60">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{busy ? "Creating organization…" : "Create Rewardor account"}</button>
     <p className="text-center text-sm text-foreground-muted">Already registered? <Link href="/login" className="font-semibold text-primary hover:underline">Sign in</Link></p>

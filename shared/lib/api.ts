@@ -23,6 +23,11 @@ export type RewardorAnalytics = {
   pointsIssuedChangePercent: number | null;
   series: RewardorAnalyticsPoint[];
 };
+export type PrivacyPurpose = "core_service" | "market_intelligence" | "marketing";
+export type PrivacyRequestType = "access" | "correction" | "erasure" | "nomination" | "grievance";
+export type PrivacyRequestStatus = "submitted" | "in_review" | "completed" | "rejected";
+export type PrivacyConsent = { purposeCode: PrivacyPurpose; granted: boolean; noticeVersion: string; occurredAt?: string };
+export type PrivacyRequest = { id: string; requestType: PrivacyRequestType; details: string; status: PrivacyRequestStatus; createdAt: string; resolvedAt?: string | null; responseNote?: string | null };
 export type RewardorOrganizationRegistration = {
   organization: {
     legalName: string;
@@ -143,3 +148,7 @@ export const updateRewardCampaignImage = (id: string, imageUrl: string) => rewar
 export const transitionRewardCampaign = (id: string, action: "publish" | "pause" | "archive") => rewardorApi<RewardCampaign>(`reward-campaigns/${encodeURIComponent(id)}/${action}`, { method: "POST", body: JSON.stringify({}) });
 export const reconcileRewardorIdentity = () => rewardorApi<{ onboardingComplete: boolean }>("auth/reconcile", { method: "POST", body: JSON.stringify({}) });
 export const registerRewardorOrganization = (body: RewardorOrganizationRegistration, idempotencyKey: string) => rewardorApi<RewardorOrganizationRegistrationResult>("seller-organizations", { method: "POST", headers: { "Idempotency-Key": idempotencyKey }, body: JSON.stringify(body) });
+export const getPrivacyConsents = () => rewardorApi<{ items: PrivacyConsent[] }>("me/privacy/consents");
+export const recordPrivacyConsent = (purposeCode: PrivacyPurpose, granted: boolean, noticeVersion = "1.0.0") => rewardorApi<PrivacyConsent>("me/privacy/consents", { method: "POST", body: JSON.stringify({ purposeCode, action: granted ? "granted" : "withdrawn", noticeVersion, source: "rewardor-web" }) });
+export const getPrivacyRequests = () => rewardorApi<{ items: PrivacyRequest[] }>("me/privacy/requests");
+export const submitPrivacyRequest = (requestType: PrivacyRequestType, details: string) => rewardorApi<PrivacyRequest>("me/privacy/requests", { method: "POST", body: JSON.stringify({ requestType, details }) });
