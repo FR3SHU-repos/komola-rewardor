@@ -28,6 +28,7 @@ export type PrivacyRequestType = "access" | "correction" | "erasure" | "nominati
 export type PrivacyRequestStatus = "submitted" | "in_review" | "completed" | "rejected";
 export type PrivacyConsent = { purposeCode: PrivacyPurpose; granted: boolean; noticeVersion: string; occurredAt?: string };
 export type PrivacyRequest = { id: string; requestType: PrivacyRequestType; details: string; status: PrivacyRequestStatus; createdAt: string; dueAt?: string; resolvedAt?: string | null; responseNote?: string | null };
+export type PrivacyNotification = { id: string; privacyRequestId?: string; kind: string; title: string; message: string; createdAt: string; readAt?: string | null };
 export type RewardorOrganizationRegistration = {
   organization: {
     legalName: string;
@@ -155,6 +156,6 @@ export const reconcileRewardorIdentity = () => rewardorApi<{ onboardingComplete:
 export const registerRewardorOrganization = (body: RewardorOrganizationRegistration, idempotencyKey: string) => rewardorApi<RewardorOrganizationRegistrationResult>("seller-organizations", { method: "POST", headers: { "Idempotency-Key": idempotencyKey }, body: JSON.stringify(body) });
 export const getPrivacyConsents = () => rewardorApi<{ items: PrivacyConsent[] }>("me/privacy/consents");
 export const recordPrivacyConsent = (purposeCode: PrivacyPurpose, granted: boolean, noticeVersion = "1.0.0") => rewardorApi<PrivacyConsent>("me/privacy/consents", { method: "POST", body: JSON.stringify({ purposeCode, action: granted ? "granted" : "withdrawn", noticeVersion, source: "rewardor-web" }) });
-export const getPrivacyRequests = () => rewardorApi<{ items: PrivacyRequest[] }>("me/privacy/requests");
+export const getPrivacyRequests = () => rewardorApi<{ items: PrivacyRequest[]; notifications?: PrivacyNotification[] }>("me/privacy/requests");
 export const submitPrivacyRequest = (requestType: PrivacyRequestType, details: string) => rewardorApi<PrivacyRequest>("me/privacy/requests", { method: "POST", body: JSON.stringify({ requestType, details }) });
 export const privacyExport = () => rewardorApi<Record<string, unknown>>("me/privacy/export");
