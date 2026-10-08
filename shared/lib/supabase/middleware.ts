@@ -10,8 +10,8 @@ function validSupabaseUrl(value: string | undefined): string {
   }
 }
 
-const URL = validSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
-const KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+const URL = validSupabaseUrl(process.env.NEXT_PUBLIC_KOMOLA_SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL);
+const KEY = process.env.NEXT_PUBLIC_KOMOLA_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
 function isTransientAuthError(error: { name?: string; message?: string } | null): boolean {
   return Boolean(error && (error.name === "AuthRetryableFetchError" || /network|fetch|timeout/i.test(error.message ?? "")));

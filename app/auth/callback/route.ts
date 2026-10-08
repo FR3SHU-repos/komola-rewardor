@@ -6,8 +6,8 @@ export async function GET(request: NextRequest) {
   const code = url.searchParams.get("code");
   const nextValue = url.searchParams.get("next");
   const next = nextValue && nextValue.startsWith("/") && !nextValue.startsWith("//") && !nextValue.includes("://") ? nextValue : "/";
-  const supabaseURL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+  const supabaseURL = process.env.NEXT_PUBLIC_KOMOLA_SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  const supabaseKey = process.env.NEXT_PUBLIC_KOMOLA_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
   if (!code || !supabaseURL || !supabaseKey) return NextResponse.redirect(new URL(`/login?error=auth_callback&next=${encodeURIComponent(next)}`, request.url));
 
   let response = NextResponse.redirect(new URL(next, request.url));

@@ -11,7 +11,7 @@ function safeNext(value: string | null): string {
 }
 
 function googleEnabled(): boolean {
-  return process.env.NEXT_PUBLIC_AUTH_GOOGLE_ENABLED === "true";
+  return (process.env.NEXT_PUBLIC_KOMOLA_AUTH_GOOGLE_ENABLED ?? process.env.NEXT_PUBLIC_AUTH_GOOGLE_ENABLED) !== "false";
 }
 
 function LoginForm() {
