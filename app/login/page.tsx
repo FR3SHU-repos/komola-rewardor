@@ -67,7 +67,6 @@ function LoginForm() {
       </form>
       <a href={`${posUrl}/auth/forgot-password`} className="mt-4 block text-center text-xs font-medium text-primary hover:underline">Forgot password?</a>
       <p className="mt-5 text-center text-xs text-foreground-muted">Need an account? <Link href="/register" className="font-medium text-primary hover:underline">Register for Rewardor</Link></p>
-      <p className="mt-3 text-center text-xs text-foreground-muted">POS account already exists? <a href={`${posUrl}/login/seller`} className="font-medium text-primary hover:underline">Sign in through POS</a></p>
     </section>
   </main>;
 }
