@@ -52,7 +52,6 @@ function LoginForm() {
     }
   }
 
-  const posUrl = (process.env.NEXT_PUBLIC_KOMOLA_POS_URL ?? "http://localhost:3000").replace(/\/$/, "");
   return <main className="flex min-h-screen items-center justify-center bg-surface px-4 py-8">
     <section className="w-full max-w-md rounded-2xl border border-border bg-surface-card p-6 shadow-sm sm:p-8">
       <div className="mb-6 flex flex-col items-center text-center"><span className="grid h-12 w-12 place-items-center rounded-xl bg-primary text-primary-foreground"><Gift className="h-6 w-6" /></span><p className="mt-3 text-lg font-black tracking-tight text-foreground-heading">KOMOLA</p><h1 className="mt-1 text-xl font-black text-foreground-heading">Sign in to Rewardor</h1><p className="mt-1 text-sm text-foreground-muted">Use your shared KOMOLA account to manage campaigns.</p></div>
@@ -65,7 +64,7 @@ function LoginForm() {
         {error ? <p role="alert" aria-live="polite" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
         <button type="submit" disabled={busy} className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground transition hover:bg-primary-hover disabled:opacity-60">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{busy ? "Signing in…" : "Sign in"}</button>
       </form>
-      <a href={`${posUrl}/auth/forgot-password`} className="mt-4 block text-center text-xs font-medium text-primary hover:underline">Forgot password?</a>
+      <Link href="/auth/forgot-password" className="mt-4 block text-center text-xs font-medium text-primary hover:underline">Forgot password?</Link>
       <p className="mt-5 text-center text-xs text-foreground-muted">Need an account? <Link href="/register" className="font-medium text-primary hover:underline">Register for Rewardor</Link></p>
     </section>
   </main>;
