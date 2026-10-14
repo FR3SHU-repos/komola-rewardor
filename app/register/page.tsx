@@ -59,7 +59,7 @@ export default function RegisterPage() {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
-  async function createOrganization() {
+  async function createOrganization(accessToken?: string) {
     const phoneE164 = normalizeIndianMobile(form.phone);
     if (!phoneE164) {
       setError("Enter a valid 10-digit Indian mobile number.");
@@ -70,12 +70,12 @@ export default function RegisterPage() {
       organization: { legalName: form.legalName.trim() || form.displayName.trim(), displayName: form.displayName.trim(), contactName: form.fullName.trim(), type: "Rewardor", phoneE164, billingAddress: address },
       location: { code: "visakhapatnam", name: "Visakhapatnam", timezone: "Asia/Kolkata", phoneE164, address },
     };
-    const reconciled = await reconcileRewardorIdentity();
+    const reconciled = await reconcileRewardorIdentity(accessToken);
     if (!reconciled.success) {
       setError(reconciled.message || "Unable to verify your KOMOLA account.");
       return false;
     }
-    const result = await registerRewardorOrganization(body, newIdempotencyKey());
+    const result = await registerRewardorOrganization(body, newIdempotencyKey(), accessToken);
     if (!result.success || !result.data) {
       setError(result.message || "Organization registration could not be completed.");
       return false;
@@ -103,6 +103,7 @@ export default function RegisterPage() {
       const client = createAuthBrowserClient();
       const { data: sessionData, error: sessionError } = await client.auth.getSession();
       if (sessionError) throw sessionError;
+      let freshAccessToken = sessionData.session?.access_token;
       if (!sessionData.session) {
         if (form.password.length < 8) { setError("Password must be at least 8 characters."); return; }
         if (form.password !== form.confirm) { setError("Passwords do not match."); return; }
@@ -117,8 +118,9 @@ export default function RegisterPage() {
           router.replace("/auth/check-email");
           return;
         }
+        freshAccessToken = data.session.access_token;
       }
-      await createOrganization();
+      await createOrganization(freshAccessToken);
     } catch {
       setError("We could not complete registration. Check that the Go API is running and try again.");
     } finally {

@@ -109,9 +109,9 @@ async function resolveOrganizationId(token: string | null): Promise<string | nul
   return stored;
 }
 
-export async function rewardorApi<T>(path: string, options: RequestInit = {}): Promise<ApiResult<T>> {
+export async function rewardorApi<T>(path: string, options: RequestInit = {}, accessTokenOverride?: string): Promise<ApiResult<T>> {
   try {
-    const token = await accessToken();
+    const token = accessTokenOverride ?? await accessToken();
     const organizationId = await resolveOrganizationId(token);
     const target = `${base}/api/v1/${path.replace(/^\//, "")}`;
     const requestWithToken = (accessToken: string | null) => fetch(target, { ...options, credentials: "include", headers: { "Content-Type": "application/json", ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}), ...(organizationId ? { "X-Organization-ID": organizationId } : {}), ...(options.headers ?? {}) } });
@@ -152,8 +152,8 @@ export const createRewardCampaign = (body: RewardCampaignInput) => rewardorApi<R
 export const updateRewardCampaign = (id: string, body: RewardCampaignInput) => rewardorApi<RewardCampaign>(`reward-campaigns/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(body) });
 export const updateRewardCampaignImage = (id: string, imageUrl: string) => rewardorApi<RewardCampaign>(`reward-campaigns/${encodeURIComponent(id)}/image`, { method: "PATCH", body: JSON.stringify({ imageUrl }) });
 export const transitionRewardCampaign = (id: string, action: "publish" | "pause" | "archive") => rewardorApi<RewardCampaign>(`reward-campaigns/${encodeURIComponent(id)}/${action}`, { method: "POST", body: JSON.stringify({}) });
-export const reconcileRewardorIdentity = () => rewardorApi<{ onboardingComplete: boolean }>("auth/reconcile", { method: "POST", body: JSON.stringify({}) });
-export const registerRewardorOrganization = (body: RewardorOrganizationRegistration, idempotencyKey: string) => rewardorApi<RewardorOrganizationRegistrationResult>("seller-organizations", { method: "POST", headers: { "Idempotency-Key": idempotencyKey }, body: JSON.stringify(body) });
+export const reconcileRewardorIdentity = (accessTokenOverride?: string) => rewardorApi<{ onboardingComplete: boolean }>("auth/reconcile", { method: "POST", body: JSON.stringify({}) }, accessTokenOverride);
+export const registerRewardorOrganization = (body: RewardorOrganizationRegistration, idempotencyKey: string, accessTokenOverride?: string) => rewardorApi<RewardorOrganizationRegistrationResult>("seller-organizations", { method: "POST", headers: { "Idempotency-Key": idempotencyKey }, body: JSON.stringify(body) }, accessTokenOverride);
 export const getPrivacyConsents = () => rewardorApi<{ items: PrivacyConsent[] }>("me/privacy/consents");
 export const recordPrivacyConsent = (purposeCode: PrivacyPurpose, granted: boolean, noticeVersion = "1.0.0") => rewardorApi<PrivacyConsent>("me/privacy/consents", { method: "POST", body: JSON.stringify({ purposeCode, action: granted ? "granted" : "withdrawn", noticeVersion, source: "rewardor-web" }) });
 export const getPrivacyRequests = () => rewardorApi<{ items: PrivacyRequest[]; notifications?: PrivacyNotification[] }>("me/privacy/requests");
