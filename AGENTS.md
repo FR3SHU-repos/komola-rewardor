@@ -1,5 +1,7 @@
 # Rewardor Webapp Rules
 
+Before creating commits, tags, or pushes, read `GIT_RULES.md` and follow its branch, review, verification, and release requirements.
+
 This app is a dedicated Rewardor experience sharing KOMOLA's existing Go API and Supabase identity. Follow these rules for every change.
 
 1. Keep reusable non-route code in `shared/`; do not put shared services in `app/`.
