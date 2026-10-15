@@ -95,7 +95,7 @@ silently use it as a fallback when the Go API fails.
 
 | Route | Behavior |
 |---|---|
-| `/login` | Supabase password sign-in and optional Google OAuth; preserves a safe `next` path. |
+| `/login` | Supabase password sign-in by email or Indian mobile number, plus optional Google OAuth; preserves a safe `next` path. |
 | `/register` | Creates a Supabase account, then reconciles identity and creates a Rewardor organization/location through the Go API. |
 | `/auth/callback` | Exchanges the Supabase authorization code for a session and redirects to a safe local path. |
 | `/auth/check-email` | Explains email verification and returns the user to sign-in/registration. |
@@ -128,7 +128,7 @@ report the actionable error.
 ### Sign-in/session
 
 - Supabase Auth is the shared identity provider for POS, buyer, and Rewardor.
-- Password and optional Google sign-in create a Supabase session.
+- Password sign-in accepts the shared account email or Indian mobile number; optional Google sign-in also creates a Supabase session.
 - The browser obtains the current access token with `getSession()` and retries
   one `401` response after `refreshSession()`.
 - Requests include `Authorization: Bearer <access-token>` and
@@ -161,8 +161,9 @@ managed through the shared KOMOLA/POS organization records.
 
 The recovery redirect is generated from the current Rewardor origin:
 `/auth/reset-password`. After the new password is accepted, the app signs out
-the recovery session and redirects to `/login`. Do not point Rewardor recovery
-to the POS app.
+the recovery session and redirects to `/login`. Recovery still uses email; a
+phone-only account cannot use SMS recovery because phone OTP is not enabled.
+Do not point Rewardor recovery to the POS app.
 
 ## 6. Campaign authoring
 
