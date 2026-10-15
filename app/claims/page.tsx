@@ -6,6 +6,7 @@ import { RewardorShell } from "@/shared/components/RewardorShell";
 import { StatusBadge } from "@/shared/components/StatusBadge";
 import {
   approveRewardClaim,
+  deliverRewardClaim,
   getRewardorClaims,
   rejectRewardClaim,
   type RewardorClaimActivity,
@@ -35,6 +36,10 @@ function statusLabel(status: RewardorClaimStatus): string {
     ? "Pending approval"
     : status === "cancelled"
       ? "Rejected / cancelled"
+      : status === "delivered"
+        ? "Reward delivered"
+        : status === "confirmed"
+          ? "Buyer confirmed"
       : status.charAt(0).toUpperCase() + status.slice(1);
 }
 
@@ -118,6 +123,16 @@ export default function ClaimsPage() {
     else setReload((value) => value + 1);
   }
 
+  async function markDelivered(item: RewardorClaimActivity) {
+    if (busyClaim || item.status !== "approved") return;
+    if (!window.confirm("Confirm that this reward has been delivered to the buyer?")) return;
+    setBusyClaim(item.id);
+    const result = await deliverRewardClaim(item.id);
+    setBusyClaim(null);
+    if (!result.success) setError(result.message);
+    else setReload((value) => value + 1);
+  }
+
   function exportClaims() {
     const header = [
       "Claim code",
@@ -126,6 +141,8 @@ export default function ClaimsPage() {
       "Status",
       "Points",
       "Claimed at",
+      "Delivered at",
+      "Confirmed at",
       "Redeemed at",
     ];
     const rows = items.map((item) => [
@@ -135,6 +152,8 @@ export default function ClaimsPage() {
       item.status,
       item.points,
       item.claimedAt,
+      item.deliveredAt ?? "",
+      item.confirmedAt ?? "",
       item.redeemedAt ?? "",
     ]);
     const csv = [header, ...rows]
@@ -222,6 +241,8 @@ export default function ClaimsPage() {
               <option value="">All statuses</option>
               <option value="claimed">Pending approval</option>
               <option value="approved">Approved</option>
+              <option value="delivered">Reward delivered</option>
+              <option value="confirmed">Buyer confirmed</option>
               <option value="redeemed">Redeemed</option>
               <option value="cancelled">Rejected / cancelled</option>
             </select>
@@ -306,8 +327,12 @@ export default function ClaimsPage() {
                     {item.status === "claimed"
                       ? "Points are locked until approval."
                       : item.status === "approved"
-                        ? "Points transferred to the Rewardor account."
-                        : "Reward redeemed."}
+                        ? "Points transferred. Deliver the reward, then mark it delivered."
+                        : item.status === "delivered"
+                          ? "Reward delivered. Waiting for the buyer to confirm receipt."
+                          : item.status === "confirmed"
+                            ? "Buyer confirmed receipt of the reward."
+                            : "Reward redeemed."}
                   </p>
                   {item.status === "claimed" ? (
                     <div className="flex gap-2 md:justify-end">
@@ -328,6 +353,19 @@ export default function ClaimsPage() {
                         {busyClaim === item.id ? "Saving…" : "Approve"}
                       </button>
                     </div>
+                  ) : item.status === "approved" ? (
+                    <button
+                      type="button"
+                      disabled={busyClaim === item.id}
+                      onClick={() => void markDelivered(item)}
+                      className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground disabled:opacity-50"
+                    >
+                      {busyClaim === item.id ? "Saving…" : "Mark reward delivered"}
+                    </button>
+                  ) : item.status === "delivered" ? (
+                    <span className="text-right text-xs font-semibold text-foreground-muted">
+                      Waiting for buyer confirmation
+                    </span>
                   ) : null}
                 </div>
               </div>

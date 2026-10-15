@@ -2,6 +2,9 @@
 
 Dedicated Rewardor web experience for creating campaigns, monitoring buyer claims, and reviewing redemptions.
 
+Implementation documentation starts at [`docs/README.md`](docs/README.md).
+The main AI-oriented reference is [`docs/system-reference.md`](docs/system-reference.md).
+
 ## Current implementation
 
 The API-backed Rewardor workspace uses the shared Supabase Auth identity and the
@@ -49,7 +52,9 @@ bucket must be public-read with authenticated-user upload access, as documented
 for POS product images in `../komola-pos/docs/PRODUCT-IMAGES.md`. Never expose a
 Supabase service-role key in this app.
 
-The Go backend must have migrations `000023_reward_campaigns` through
-`000029_reward_campaign_slugs` applied before using the complete campaign and
-buyer-claim flow. The API migration runner is the source of truth; do not create
-application tables from the Rewardor browser.
+The Go backend migration runner is the source of truth. The campaign/claim
+workflow requires the campaign, claim, settlement, privacy, analytics, and
+delivery-confirmation migrations, including `000043_reward_claim_delivery_confirmation`.
+Do not create application tables from the Rewardor browser. See
+[`docs/system-reference.md`](docs/system-reference.md) and the shared API
+contract for the migration map.
