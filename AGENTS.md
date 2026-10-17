@@ -1,8 +1,21 @@
-# Rewardor Webapp Rules
+# KOMOLA Rewardor agent rules
 
-Before creating commits, tags, or pushes, read `GIT_RULES.md` and follow its branch, review, verification, and release requirements.
+Before starting work, read:
 
-This app is a dedicated Rewardor experience sharing KOMOLA's existing Go API and Supabase identity. Follow these rules for every change.
+1. [`../cross-platform-assets/AGENT_WORKFLOW.md`](../cross-platform-assets/AGENT_WORKFLOW.md).
+2. [`README.md`](README.md), [`docs/README.md`](docs/README.md), and
+   [`docs/system-reference.md`](docs/system-reference.md).
+3. [`GIT_RULES.md`](GIT_RULES.md) before creating commits, tags, or pushes.
+4. The shared API contract in
+   [`../go-api-backend/docs/api-current.md`](../go-api-backend/docs/api-current.md),
+   [`../go-api-backend/openapi/openapi.yaml`](../go-api-backend/openapi/openapi.yaml),
+   and [`../cross-platform-assets/rewardor/REWARDOR-API.md`](../cross-platform-assets/rewardor/REWARDOR-API.md).
+5. [`../cross-platform-assets/DPDP_DATA_GOVERNANCE.md`](../cross-platform-assets/DPDP_DATA_GOVERNANCE.md)
+   before changing identity, authentication, campaigns, claims, rewards,
+   analytics, retention, exports, integrations, or account deletion.
+
+This app is a dedicated Rewardor experience sharing KOMOLA's existing Go API
+and Supabase identity. Follow these rules for every change.
 
 1. Keep reusable non-route code in `shared/`; do not put shared services in `app/`.
 2. Use the domain boundary `shared/lib/api`, `shared/components`, and future `shared/features/rewards` for Rewardor behavior.
@@ -16,6 +29,31 @@ This app is a dedicated Rewardor experience sharing KOMOLA's existing Go API and
 10. Run `npm run typecheck` and `npm run build` before handoff.
 11. Reward values are Komola points only. Do not add cash, rupee, percentage-discount, cashback, or delivery-credit reward types.
 12. Campaign type may be `product`, `offer`, or `online_cashback`; this describes the context of the campaign, not a different payout currency.
+
+## Change and verification rules
+
+- Inspect `git status` and existing diffs before editing; preserve unrelated
+  work.
+- Do not add direct database access, MongoDB, Mongoose, a second data store, or
+  a second authentication system. Route application data through typed clients
+  and keep the Go API authoritative.
+- Do not change the database, run migrations, delete/anonymize records, or
+  alter Supabase/production settings without explicit user confirmation.
+- Do not expose secrets, auth tokens, raw buyer contact data, claim details, or
+  production records in source, logs, tests, fixtures, screenshots, or commits.
+- Update Rewardor system docs, the shared API contract, and OpenAPI whenever a
+  campaign, claim, fulfilment, delivery confirmation, analytics, auth, or
+  deployment behavior changes.
+- Before handoff, run:
+
+  ```bash
+  npm run typecheck
+  npm run lint
+  npm run build
+  git diff --check
+  ```
+
+Report any checks not run and any external-state operation separately.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
