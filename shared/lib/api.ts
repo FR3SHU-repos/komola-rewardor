@@ -123,7 +123,7 @@ export async function rewardorApi<T>(path: string, options: RequestInit = {}, ac
       }
     }
     const body = await response.json().catch(() => ({}));
-    const message = /seller identity not found|active organization required|select an active rewardor organization/i.test(String(body.message ?? ""))
+    const message = /seller identity not found|active organization required|select an active rewardor organization|select an organization using x-organization-id/i.test(String(body.message ?? ""))
       ? "This account is not linked to an active Rewardor organization. Create one with Rewardor registration or sign in with an authorized account."
       : body.message ?? response.statusText;
     return { success: response.ok && body.success === true, message, data: body.data ?? null, status: response.status };

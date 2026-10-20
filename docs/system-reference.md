@@ -115,6 +115,7 @@ silently use it as a fallback when the Go API fails.
 | `/claims` | Paginated claim review, manual approval/rejection, delivery confirmation, and CSV export. |
 | `/analytics` | Last-30-day organization analytics from `GET /api/v1/reward-campaigns/analytics?days=30`. |
 | `/settings` | Read-only shared organization/user access view plus privacy links. |
+| `/support` | Guided issue form that opens a prepared email to `varma.v.business@gmail.com`. |
 | `/privacy/requests` | Optional consent controls, privacy export, and privacy request submission/status. |
 
 The middleware protects workspace paths when Supabase is configured. It allows

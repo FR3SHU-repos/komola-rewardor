@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BarChart3, ChevronDown, Gift, LayoutDashboard, LogOut, Megaphone, Settings, ShieldCheck } from "lucide-react";
+import { BarChart3, ChevronDown, Gift, HelpCircle, LayoutDashboard, LogOut, Megaphone, Settings, ShieldCheck } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getRewardorBootstrap, type RewardorBootstrap } from "@/shared/lib/api";
@@ -13,6 +13,7 @@ const nav = [
   { href: "/claims", label: "Claims & redemptions", icon: Gift },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/support", label: "Support", icon: HelpCircle },
 ];
 
 function initials(value: string): string {
