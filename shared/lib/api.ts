@@ -5,6 +5,7 @@ export type ApprovalMode = "automatic" | "manual";
 export type RewardCampaign = { id: string; slug: string; title: string; description: string; campaignType: "product" | "offer" | "online_cashback"; rewardType: "fixed_points" | "bonus_points" | "points_multiplier"; points: number; totalClaimsAllowed: number; perBuyerLimit: number; timerEnabled: boolean; startsAt: string | null; endsAt: string | null; imageUrl: string; status: CampaignStatus; claims: number; locationCode: string; locationName: string; providerName: string; approvalMode: ApprovalMode; deliveryOptions: FulfillmentMethod[]; pickupStoreName: string | null; pickupStorePhone: string | null; pickupStoreAddress: Record<string, string>; createdAt?: string | null; updatedAt?: string | null };
 export type RewardCampaignInput = Omit<RewardCampaign, "id" | "slug" | "status" | "claims" | "locationName" | "providerName" | "createdAt" | "updatedAt">;
 export type RewardorOverview = { campaigns: number; publishedCampaigns: number; draftCampaigns: number; pausedCampaigns: number; archivedCampaigns: number; totalClaimsAllowed: number; potentialPoints: number };
+export type PlatformLocation = { id: string; code: string; name: string; timezone: string; status?: string; enabled?: boolean };
 export type RewardorClaimStatus = "claimed" | "approved" | "delivered" | "confirmed" | "redeemed" | "cancelled";
 export type RewardorClaimActivity = { id: string; claimCode: string; status: RewardorClaimStatus; claimedAt: string; redeemedAt: string | null; approvedAt?: string | null; deliveredAt?: string | null; confirmedAt?: string | null; decisionReason?: string; campaignId: string; campaign: string; campaignSlug: string; buyer: string; buyerPhone: string; deliveryAddress?: Record<string, string>; fulfillmentMethod: FulfillmentMethod; pickupStoreName?: string | null; pickupStorePhone?: string | null; pickupStoreAddress?: Record<string, string>; points: number };
 export type RewardorClaimsSummary = { totalClaimsAllowed: number; claimed: number; redeemed: number; pendingPoints: number };
@@ -133,6 +134,7 @@ export async function rewardorApi<T>(path: string, options: RequestInit = {}, ac
 }
 
 export const listRewardCampaigns = () => rewardorApi<{ items: RewardCampaign[] }>("reward-campaigns");
+export const getPlatformLocations = () => rewardorApi<{ items: PlatformLocation[] }>("locations");
 export const getRewardorBootstrap = () => rewardorApi<RewardorBootstrap>("pos/bootstrap");
 export const getRewardorOverview = () => rewardorApi<RewardorOverview>("reward-campaigns/overview");
 export const getRewardorClaims = (search = "", status = "", page = 1) => {
