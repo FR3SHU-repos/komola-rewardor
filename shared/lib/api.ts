@@ -83,14 +83,52 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 }
 
-async function resolveOrganizationId(token: string | null): Promise<string | null> {
-  if (typeof window === "undefined") return null;
-  const stored = window.localStorage.getItem("komola:rewardor-organization-id");
-  if (!token || !base) return null;
+const ORGANIZATION_CACHE_TTL_MS = 60_000;
+let organizationCache: {
+  token: string;
+  selectedOrganizationId: string | null;
+  organizationId: string | null;
+  expiresAt: number;
+} | null = null;
+let organizationLookup: {
+  token: string;
+  selectedOrganizationId: string | null;
+  promise: Promise<string | null>;
+} | null = null;
+
+function waitForAbort<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (!signal) return promise;
+  if (signal.aborted) {
+    const error = new Error("Request aborted");
+    error.name = "AbortError";
+    return Promise.reject(error);
+  }
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => {
+      signal.removeEventListener("abort", onAbort);
+      const error = new Error("Request aborted");
+      error.name = "AbortError";
+      reject(error);
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
+    promise.then(
+      (value) => {
+        signal.removeEventListener("abort", onAbort);
+        resolve(value);
+      },
+      (error) => {
+        signal.removeEventListener("abort", onAbort);
+        reject(error);
+      },
+    );
+  });
+}
+
+async function fetchOrganizationId(token: string, selectedOrganizationId: string | null): Promise<string | null> {
   try {
     const response = await fetch(`${base}/api/v1/pos/bootstrap`, {
       credentials: "include",
-      headers: { Authorization: `Bearer ${token}`, ...(stored ? { "X-Organization-ID": stored } : {}) },
+      headers: { Authorization: `Bearer ${token}`, ...(selectedOrganizationId ? { "X-Organization-ID": selectedOrganizationId } : {}) },
     });
     const body = await response.json().catch(() => ({}));
     const organizationId = body?.data?.user?.orgId;
@@ -107,13 +145,57 @@ async function resolveOrganizationId(token: string | null): Promise<string | nul
   } catch {
     // Keep the previous organization selection during transient failures.
   }
-  return stored;
+  return selectedOrganizationId;
+}
+
+async function resolveOrganizationId(token: string | null, signal?: AbortSignal): Promise<string | null> {
+  if (typeof window === "undefined") return null;
+  const selectedOrganizationId = window.localStorage.getItem("komola:rewardor-organization-id");
+  if (!token || !base) return null;
+
+  if (
+    organizationCache &&
+    organizationCache.token === token &&
+    organizationCache.selectedOrganizationId === selectedOrganizationId &&
+    organizationCache.expiresAt > Date.now()
+  ) {
+    return waitForAbort(Promise.resolve(organizationCache.organizationId), signal);
+  }
+
+  if (
+    !organizationLookup ||
+    organizationLookup.token !== token ||
+    organizationLookup.selectedOrganizationId !== selectedOrganizationId
+  ) {
+    const promise = fetchOrganizationId(token, selectedOrganizationId).then((organizationId) => {
+      if (organizationLookup?.promise === promise) {
+        organizationCache = {
+          token,
+          selectedOrganizationId,
+          organizationId,
+          expiresAt: Date.now() + ORGANIZATION_CACHE_TTL_MS,
+        };
+      }
+      return organizationId;
+    });
+    organizationLookup = { token, selectedOrganizationId, promise };
+    void promise.then(
+      () => {
+        if (organizationLookup?.promise === promise) organizationLookup = null;
+      },
+      () => {
+        if (organizationLookup?.promise === promise) organizationLookup = null;
+      },
+    );
+  }
+
+  return waitForAbort(organizationLookup.promise, signal);
 }
 
 export async function rewardorApi<T>(path: string, options: RequestInit = {}, accessTokenOverride?: string): Promise<ApiResult<T>> {
   try {
     const token = accessTokenOverride ?? await accessToken();
-    const organizationId = await resolveOrganizationId(token);
+    const organizationId = await resolveOrganizationId(token, options.signal ?? undefined);
     const target = `${base}/api/v1/${path.replace(/^\//, "")}`;
     const requestWithToken = (accessToken: string | null) => fetch(target, { ...options, credentials: "include", headers: { "Content-Type": "application/json", ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}), ...(organizationId ? { "X-Organization-ID": organizationId } : {}), ...(options.headers ?? {}) } });
     let response = await requestWithToken(token);
@@ -133,24 +215,24 @@ export async function rewardorApi<T>(path: string, options: RequestInit = {}, ac
   }
 }
 
-export const listRewardCampaigns = () => rewardorApi<{ items: RewardCampaign[] }>("reward-campaigns");
-export const getPlatformLocations = () => rewardorApi<{ items: PlatformLocation[] }>("locations");
-export const getRewardorBootstrap = () => rewardorApi<RewardorBootstrap>("pos/bootstrap");
+export const listRewardCampaigns = (options: RequestInit = {}) => rewardorApi<{ items: RewardCampaign[] }>("reward-campaigns", options);
+export const getPlatformLocations = (options: RequestInit = {}) => rewardorApi<{ items: PlatformLocation[] }>("locations", options);
+export const getRewardorBootstrap = (options: RequestInit = {}) => rewardorApi<RewardorBootstrap>("pos/bootstrap", options);
 export const getRewardorOverview = () => rewardorApi<RewardorOverview>("reward-campaigns/overview");
-export const getRewardorClaims = (search = "", status = "", page = 1) => {
+export const getRewardorClaims = (search = "", status = "", page = 1, options: RequestInit = {}) => {
   const params = new URLSearchParams();
   if (search.trim()) params.set("search", search.trim());
   if (status) params.set("status", status);
   params.set("page", String(Math.max(1, page)));
   params.set("limit", "10");
   const query = params.toString();
-  return rewardorApi<RewardorClaimsData>(`reward-campaigns/claims${query ? `?${query}` : ""}`);
+  return rewardorApi<RewardorClaimsData>(`reward-campaigns/claims${query ? `?${query}` : ""}`, options);
 };
 export const approveRewardClaim = (claimId: string) => rewardorApi<{ id: string; status: string; points: number }>(`reward-campaigns/claims/${encodeURIComponent(claimId)}/approve`, { method: "POST", body: JSON.stringify({}) });
 export const rejectRewardClaim = (claimId: string, reason = "") => rewardorApi<{ id: string; status: string; points: number }>(`reward-campaigns/claims/${encodeURIComponent(claimId)}/reject`, { method: "POST", body: JSON.stringify({ reason }) });
 export const deliverRewardClaim = (claimId: string) => rewardorApi<{ id: string; status: "delivered"; points: number; deliveredAt: string }>(`reward-campaigns/claims/${encodeURIComponent(claimId)}/deliver`, { method: "POST", body: JSON.stringify({}) });
-export const getRewardorAnalytics = (days = 30) => rewardorApi<RewardorAnalytics>(`reward-campaigns/analytics?days=${days}`);
-export const getRewardCampaign = (id: string) => rewardorApi<RewardCampaign>(`reward-campaigns/${encodeURIComponent(id)}`);
+export const getRewardorAnalytics = (days = 30, options: RequestInit = {}) => rewardorApi<RewardorAnalytics>(`reward-campaigns/analytics?days=${days}`, options);
+export const getRewardCampaign = (id: string, options: RequestInit = {}) => rewardorApi<RewardCampaign>(`reward-campaigns/${encodeURIComponent(id)}`, options);
 export const createRewardCampaign = (body: RewardCampaignInput) => rewardorApi<RewardCampaign>("reward-campaigns", { method: "POST", body: JSON.stringify(body) });
 export const updateRewardCampaign = (id: string, body: RewardCampaignInput) => rewardorApi<RewardCampaign>(`reward-campaigns/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(body) });
 export const updateRewardCampaignImage = (id: string, imageUrl: string) => rewardorApi<RewardCampaign>(`reward-campaigns/${encodeURIComponent(id)}/image`, { method: "PATCH", body: JSON.stringify({ imageUrl }) });

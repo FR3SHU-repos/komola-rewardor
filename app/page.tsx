@@ -22,7 +22,8 @@ export default function Home() {
       if (!alive) return;
       if (summary.success && summary.data) setOverview(summary.data);
       if (campaignsResult.success && campaignsResult.data) setCampaigns(campaignsResult.data.items);
-      if (!summary.success || !campaignsResult.success) setError(summary.message || campaignsResult.message);
+      if (!summary.success) setError(summary.message);
+      else if (!campaignsResult.success) setError(campaignsResult.message);
       setLoading(false);
     });
     return () => { alive = false; };
