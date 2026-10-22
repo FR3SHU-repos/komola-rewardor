@@ -1,6 +1,6 @@
 "use client";
 
-import { type ChangeEvent, type FormEvent, useState } from "react";
+import { type ChangeEvent, type FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -17,10 +17,16 @@ import {
 import type {
   ApprovalMode,
   FulfillmentMethod,
+  PlatformLocation,
   RewardCampaign,
   RewardCampaignInput,
 } from "@/shared/lib/api";
-import { createRewardCampaign, updateRewardCampaign } from "@/shared/lib/api";
+import {
+  createRewardCampaign,
+  getPlatformLocations,
+  getRewardorBootstrap,
+  updateRewardCampaign,
+} from "@/shared/lib/api";
 import { uploadRewardCampaignImage } from "@/shared/lib/supabase/reward-campaign-images";
 
 const input =
@@ -43,6 +49,14 @@ export function CampaignForm({ campaign }: { campaign?: RewardCampaign }) {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [locations, setLocations] = useState<PlatformLocation[]>([]);
+  const [locationCode, setLocationCode] = useState(campaign?.locationCode ?? "");
+  const [pickupCity, setPickupCity] = useState(
+    campaign?.pickupStoreAddress?.city ?? "",
+  );
+  const [pickupStorePhone, setPickupStorePhone] = useState(
+    campaign?.pickupStorePhone ?? "",
+  );
   const [deliveryMethod, setDeliveryMethod] = useState<FulfillmentMethod>(
     campaign?.deliveryOptions?.[0] ?? "home_delivery",
   );
@@ -50,6 +64,44 @@ export function CampaignForm({ campaign }: { campaign?: RewardCampaign }) {
     campaign?.approvalMode ?? "manual",
   );
   const editing = Boolean(campaign);
+
+  useEffect(() => {
+    let active = true;
+    void Promise.all([getPlatformLocations(), getRewardorBootstrap()]).then(
+      ([locationsResult, bootstrapResult]) => {
+        if (!active) return;
+        if (locationsResult.success && locationsResult.data) {
+          const enabledLocations = locationsResult.data.items.filter(
+            (location) =>
+              location.enabled !== false && location.status !== "disabled",
+          );
+          setLocations(enabledLocations);
+          setLocationCode((current) =>
+            enabledLocations.some((location) => location.code === current)
+              ? current
+              : enabledLocations[0]?.code || "",
+          );
+          setPickupCity((current) =>
+            enabledLocations.some((location) => location.name === current)
+              ? current
+              : enabledLocations[0]?.name || "",
+          );
+        } else {
+          setError(
+            locationsResult.message || "Available cities could not be loaded.",
+          );
+        }
+        const rewardorPhone =
+          bootstrapResult.data?.organization?.organization?.phoneE164;
+        if (rewardorPhone) {
+          setPickupStorePhone((current) => current || rewardorPhone);
+        }
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -89,7 +141,7 @@ export function CampaignForm({ campaign }: { campaign?: RewardCampaign }) {
       totalClaimsAllowed,
       perBuyerLimit,
       timerEnabled: data.get("timerEnabled") === "on",
-      locationCode: String(data.get("locationCode") ?? ""),
+      locationCode: String(data.get("locationCode") ?? locationCode),
       startsAt: data.get("startsAt")
         ? `${data.get("startsAt")}T00:00:00Z`
         : null,
@@ -102,12 +154,16 @@ export function CampaignForm({ campaign }: { campaign?: RewardCampaign }) {
       pickupStoreAddress: {
         line1: String(data.get("pickupAddressLine1") ?? "").trim(),
         line2: String(data.get("pickupAddressLine2") ?? "").trim(),
-        city: String(data.get("pickupAddressCity") ?? "").trim(),
+        city: String(data.get("pickupAddressCity") ?? pickupCity).trim(),
         state: String(data.get("pickupAddressState") ?? "").trim(),
         postalCode: String(data.get("pickupAddressPostalCode") ?? "").trim(),
         country: "India",
       },
     };
+    if (!body.locationCode) {
+      setError("Select an enabled KOMOLA city.");
+      return;
+    }
     if (
       !body.title ||
       !body.description ||
@@ -332,9 +388,20 @@ export function CampaignForm({ campaign }: { campaign?: RewardCampaign }) {
             <select
               name="locationCode"
               className={input}
-              defaultValue={campaign?.locationCode ?? "visakhapatnam"}
+              value={locationCode}
+              onChange={(event) => setLocationCode(event.target.value)}
+              disabled={locations.length === 0}
+              required
             >
-              <option value="visakhapatnam">Visakhapatnam</option>
+              {locations.length === 0 ? (
+                <option value="">Loading available cities…</option>
+              ) : (
+                locations.map((location) => (
+                  <option key={location.id} value={location.code}>
+                    {location.name}
+                  </option>
+                ))
+              )}
             </select>
             <ChevronDown
               className="pointer-events-none absolute right-3 top-5 text-foreground-muted"
@@ -453,10 +520,14 @@ export function CampaignForm({ campaign }: { campaign?: RewardCampaign }) {
               <input
                 name="pickupStorePhone"
                 className={input}
-                defaultValue={campaign?.pickupStorePhone ?? ""}
+                value={pickupStorePhone}
+                onChange={(event) => setPickupStorePhone(event.target.value)}
                 inputMode="tel"
                 required
               />
+              <span className="mt-1 block text-xs font-semibold text-foreground-muted">
+                Use the Rewardor phone or a new number not already used in KOMOLA.
+              </span>
             </label>
             <label className="block text-sm font-bold text-foreground-heading sm:col-span-2">
               Address line 1
@@ -477,12 +548,30 @@ export function CampaignForm({ campaign }: { campaign?: RewardCampaign }) {
             </label>
             <label className="block text-sm font-bold text-foreground-heading">
               City
-              <input
-                name="pickupAddressCity"
-                className={input}
-                defaultValue={campaign?.pickupStoreAddress?.city ?? ""}
-                required
-              />
+              <div className="relative">
+                <select
+                  name="pickupAddressCity"
+                  className={input}
+                  value={pickupCity}
+                  onChange={(event) => setPickupCity(event.target.value)}
+                  disabled={locations.length === 0}
+                  required
+                >
+                  {locations.length === 0 ? (
+                    <option value="">Loading available cities…</option>
+                  ) : (
+                    locations.map((location) => (
+                      <option key={location.id} value={location.name}>
+                        {location.name}
+                      </option>
+                    ))
+                  )}
+                </select>
+                <ChevronDown
+                  className="pointer-events-none absolute right-3 top-5 text-foreground-muted"
+                  size={16}
+                />
+              </div>
             </label>
             <label className="block text-sm font-bold text-foreground-heading">
               State
@@ -571,7 +660,7 @@ export function CampaignForm({ campaign }: { campaign?: RewardCampaign }) {
         </Link>
         <button
           type="submit"
-          disabled={saving}
+          disabled={saving || locations.length === 0}
           className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Check size={17} />{" "}
