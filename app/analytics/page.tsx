@@ -20,18 +20,37 @@ export default function Analytics() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let alive = true;
-    void getRewardorAnalytics(30).then((result) => {
-      if (!alive) return;
-      if (result.success && result.data) {
-        setAnalytics(result.data);
-        setError("");
-      } else {
-        setError(result.message);
+    const controller = new AbortController();
+    let active = true;
+    async function loadAnalytics() {
+      try {
+        const result = await getRewardorAnalytics(30, {
+          signal: controller.signal,
+        });
+        if (!active || controller.signal.aborted) return;
+        if (result.success && result.data) {
+          setAnalytics(result.data);
+          setError("");
+        } else {
+          setError(result.message);
+        }
+      } catch (loadError) {
+        if (!active || controller.signal.aborted) return;
+        setError(
+          loadError instanceof Error
+            ? loadError.message
+            : "Analytics could not be loaded.",
+        );
+      } finally {
+        if (active && !controller.signal.aborted) setLoading(false);
       }
-      setLoading(false);
-    });
-    return () => { alive = false; };
+    }
+
+    void loadAnalytics();
+    return () => {
+      active = false;
+      controller.abort();
+    };
   }, []);
 
   const maxClaims = useMemo(() => Math.max(1, ...(analytics?.series.map((point) => point.claims) ?? [0])), [analytics]);

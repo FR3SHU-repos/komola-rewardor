@@ -5,18 +5,13 @@ import { type ChangeEvent, useEffect, useState } from "react";
 import {
   ArrowLeft,
   Archive,
-  BarChart3,
-  Check,
-  Gift,
-  ImagePlus,
   Pause,
   Pencil,
   Play,
-  Upload,
-  Users,
 } from "lucide-react";
 import { RewardorShell } from "@/shared/components/RewardorShell";
 import { StatusBadge } from "@/shared/components/StatusBadge";
+import { CampaignDetailSections } from "@/shared/components/rewardor/CampaignDetailSections";
 import {
   getRewardCampaign,
   transitionRewardCampaign,
@@ -24,6 +19,7 @@ import {
   type RewardCampaign,
 } from "@/shared/lib/api";
 import { uploadRewardCampaignImage } from "@/shared/lib/supabase/reward-campaign-images";
+import { useObjectUrlPreview } from "@/shared/hooks/useObjectUrlPreview";
 
 function label(status: RewardCampaign["status"]) {
   return status === "published"
@@ -45,19 +41,39 @@ export default function CampaignDetail({
   const [campaign, setCampaign] = useState<RewardCampaign | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const { preview: imagePreview, setFilePreview, setRemotePreview } =
+    useObjectUrlPreview();
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageBusy, setImageBusy] = useState(false);
   useEffect(() => {
-    void params.then(({ id }) =>
-      getRewardCampaign(id).then((result) => {
+    const controller = new AbortController();
+    let active = true;
+    setCampaign(null);
+    setRemotePreview(null);
+    setError("");
+
+    async function loadCampaign() {
+      try {
+        const { id } = await params;
+        if (!active) return;
+        const result = await getRewardCampaign(id, { signal: controller.signal });
+        if (!active || controller.signal.aborted) return;
         if (result.success && result.data) {
           setCampaign(result.data);
-          setImagePreview(result.data.imageUrl || null);
+          setRemotePreview(result.data.imageUrl || null);
         } else setError(result.message);
-      }),
-    );
-  }, [params]);
+      } catch (loadError) {
+        if (!active || controller.signal.aborted) return;
+        setError(loadError instanceof Error ? loadError.message : "Campaign could not be loaded.");
+      }
+    }
+
+    void loadCampaign();
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [params, setRemotePreview]);
 
   function chooseImage(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -71,7 +87,7 @@ export default function CampaignDetail({
     }
     setError("");
     setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+    setFilePreview(file);
   }
 
   async function saveImage() {
@@ -88,7 +104,7 @@ export default function CampaignDetail({
       }
       setCampaign(result.data);
       setImageFile(null);
-      setImagePreview(result.data.imageUrl || imageUrl);
+      setRemotePreview(result.data.imageUrl || imageUrl);
     } catch (uploadError) {
       setError(
         uploadError instanceof Error
@@ -220,171 +236,16 @@ export default function CampaignDetail({
             {error}
           </p>
         ) : null}
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Metric
-            icon={<Users size={18} />}
-            label="Claims"
-            value={String(campaign.claims)}
-          />
-          <Metric
-            icon={<Gift size={18} />}
-            label="Claims remaining"
-            value={String(
-              Math.max(0, campaign.totalClaimsAllowed - campaign.claims),
-            )}
-          />
-          <Metric
-            icon={<BarChart3 size={18} />}
-            label="Points allocation"
-            value={(
-              campaign.points * campaign.totalClaimsAllowed
-            ).toLocaleString("en-IN")}
-          />
-        </div>
-        <section className="rounded-2xl border border-border bg-surface-card p-6">
-          <div className="flex items-start gap-3">
-            <ImagePlus className="mt-1 text-primary" size={20} />
-            <div>
-              <h2 className="m-0 text-lg font-black text-foreground-heading">
-                Campaign image
-              </h2>
-              <p className="m-0 mt-1 text-sm text-foreground-muted">
-                Review the artwork buyers will see.
-              </p>
-            </div>
-          </div>
-          <div className="mt-5 overflow-hidden rounded-2xl border border-border bg-surface">
-            {imagePreview ? (
-              <img
-                src={imagePreview}
-                alt={`${campaign.title} campaign artwork`}
-                className="max-h-96 w-full object-contain"
-              />
-            ) : (
-              <div className="flex min-h-48 flex-col items-center justify-center gap-3 p-6 text-center text-sm text-foreground-muted">
-                <ImagePlus size={32} className="text-primary" />
-                No image uploaded yet.
-              </div>
-            )}
-          </div>
-          {campaign.status !== "archived" ? (
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-bold text-foreground-heading">
-                <Upload size={16} />
-                {imagePreview ? "Choose a different image" : "Upload image"}
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  className="sr-only"
-                  onChange={chooseImage}
-                />
-              </label>
-              {imageFile ? (
-                <button
-                  type="button"
-                  disabled={imageBusy}
-                  onClick={() => void saveImage()}
-                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground disabled:opacity-60"
-                >
-                  <Check size={16} />
-                  {imageBusy ? "Uploading…" : "Save image"}
-                </button>
-              ) : null}
-              <span className="text-xs font-semibold text-foreground-muted">
-                JPG, PNG, or WebP · maximum 5 MB
-              </span>
-            </div>
-          ) : null}
-        </section>
-        <section className="rounded-2xl border border-border bg-surface-card p-6">
-          <h2 className="m-0 text-lg font-black text-foreground-heading">
-            Campaign details
-          </h2>
-          <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-foreground-muted">
-            {campaign.description}
-          </p>
-          <dl className="mt-6 grid gap-4 border-t border-border pt-5 sm:grid-cols-2">
-            <Info label="Campaign type" value={campaign.campaignType} />
-            <Info label="Reward type" value={campaign.rewardType} />
-            <Info
-              label="Claim approval"
-              value={campaign.approvalMode === "automatic" ? "Automatic approval" : "Manual approval"}
-            />
-            <Info
-              label="Limit per buyer"
-              value={String(campaign.perBuyerLimit)}
-            />
-            <Info
-              label="Timer"
-              value={campaign.timerEnabled ? "Shown to buyers" : "Hidden"}
-            />
-          </dl>
-        </section>
-        <section className="rounded-2xl border border-border bg-surface-card p-6">
-          <h2 className="m-0 text-lg font-black text-foreground-heading">
-            Campaign readiness
-          </h2>
-          <div className="mt-5 space-y-4">
-            {[
-              ["Campaign details", "Complete"],
-              ["Location eligibility", campaign.locationName],
-              [
-                "Claim limits",
-                `${campaign.totalClaimsAllowed.toLocaleString("en-IN")} allowed`,
-              ],
-              ["Current state", status],
-            ].map(([item, value]) => (
-              <div
-                className="flex items-center justify-between border-b border-border pb-4 last:border-0 last:pb-0"
-                key={item}
-              >
-                <span className="text-sm font-semibold text-foreground-heading">
-                  {item}
-                </span>
-                <span className="text-sm font-bold text-status-success">
-                  {value}
-                </span>
-              </div>
-            ))}
-          </div>
-        </section>
+        <CampaignDetailSections
+          campaign={campaign}
+          status={status}
+          imagePreview={imagePreview}
+          imageFile={imageFile}
+          imageBusy={imageBusy}
+          chooseImage={chooseImage}
+          saveImage={() => void saveImage()}
+        />
       </div>
     </RewardorShell>
-  );
-}
-
-function Metric({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-border bg-surface-card p-5">
-      <div className="flex items-center justify-between">
-        <p className="m-0 text-sm font-semibold text-foreground-muted">
-          {label}
-        </p>
-        <span className="text-primary">{icon}</span>
-      </div>
-      <p className="m-0 mt-3 text-3xl font-black text-foreground-heading">
-        {value}
-      </p>
-    </div>
-  );
-}
-function Info({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt className="text-xs font-bold uppercase tracking-wide text-foreground-muted">
-        {label}
-      </dt>
-      <dd className="mt-1 text-sm font-semibold text-foreground-heading">
-        {value}
-      </dd>
-    </div>
   );
 }
