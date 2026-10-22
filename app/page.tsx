@@ -18,15 +18,27 @@ export default function Home() {
 
   useEffect(() => {
     let alive = true;
-    void Promise.all([getRewardorOverview(), listRewardCampaigns()]).then(([summary, campaignsResult]) => {
-      if (!alive) return;
-      if (summary.success && summary.data) setOverview(summary.data);
-      if (campaignsResult.success && campaignsResult.data) setCampaigns(campaignsResult.data.items);
-      if (!summary.success) setError(summary.message);
-      else if (!campaignsResult.success) setError(campaignsResult.message);
-      setLoading(false);
-    });
-    return () => { alive = false; };
+    const controller = new AbortController();
+    async function loadOverview() {
+      try {
+        const [summary, campaignsResult] = await Promise.all([
+          getRewardorOverview({ signal: controller.signal }),
+          listRewardCampaigns({ signal: controller.signal }),
+        ]);
+        if (!alive || controller.signal.aborted) return;
+        if (summary.success && summary.data) setOverview(summary.data);
+        if (campaignsResult.success && campaignsResult.data) setCampaigns(campaignsResult.data.items);
+        if (!summary.success) setError(summary.message);
+        else if (!campaignsResult.success) setError(campaignsResult.message);
+      } catch (loadError) {
+        if (!alive || controller.signal.aborted) return;
+        setError(loadError instanceof Error ? loadError.message : "Overview could not be loaded.");
+      } finally {
+        if (alive && !controller.signal.aborted) setLoading(false);
+      }
+    }
+    void loadOverview();
+    return () => { alive = false; controller.abort(); };
   }, []);
 
   const published = useMemo(() => campaigns.filter((campaign) => campaign.status === "published"), [campaigns]);
@@ -42,7 +54,7 @@ export default function Home() {
   return <RewardorShell>
     <header className="flex items-center justify-between border-b border-border bg-surface-card px-5 py-5 sm:px-8"><div><p className="m-0 text-sm font-semibold text-foreground-muted">{dateLabel}</p><h1 className="m-0 mt-1 text-2xl font-black tracking-tight text-foreground-heading sm:text-3xl">Rewardor overview</h1></div><Link href="/campaigns/new" className="hidden items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-primary-hover sm:flex"><Plus size={17}/> New campaign</Link></header>
     <div className="space-y-8 p-5 sm:p-8">
-      <section className="rounded-3xl bg-primary p-6 text-primary-foreground sm:p-8"><div className="max-w-2xl"><p className="mb-3 inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-wider">Rewardor workspace</p><h2 className="m-0 text-2xl font-black tracking-tight sm:text-4xl">Turn every good choice into a reason to come back.</h2><p className="mt-3 max-w-xl text-sm leading-6 text-white/75">Create Komola points campaigns, reach the right buyers, and track your campaign lifecycle from one protected workspace.</p><Link href="/campaigns/new" className="mt-6 inline-flex items-center gap-2 rounded-xl bg-secondary px-4 py-2.5 text-sm font-bold text-primary hover:opacity-90">Create a reward <ArrowUpRight size={17}/></Link></div></section>
+      <section className="rounded-3xl bg-primary p-6 text-primary-foreground sm:p-8"><div className="max-w-2xl"><p className="mb-3 inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-wider">Rewardor workspace</p><h2 className="m-0 text-2xl font-black tracking-tight sm:text-4xl">Turn every good choice into a reason to come back.</h2><p className="mt-3 max-w-xl text-sm leading-6 text-white/75">Create Komola points campaigns, reach the right buyers, and track your campaign lifecycle from one protected workspace.</p><Link href="/campaigns/new" className="rewardor-hero-cta mt-6 inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black transition hover:opacity-90">Create a reward <ArrowUpRight size={17}/></Link></div></section>
       {error ? <div role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700"><p className="m-0">{error}</p>{/not linked to an active Rewardor organization/i.test(error) ? <div className="mt-4 flex flex-wrap items-center gap-3"><button type="button" onClick={() => void signOutForAccountSwitch()} className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground">Sign out and use another account</button><Link href="/register" className="rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-bold text-red-700">Create a Rewardor organization</Link></div> : null}</div> : null}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Metric icon={<Megaphone size={18}/>} label="Campaigns" value={loading ? "—" : String(overview.campaigns)} detail={`${overview.publishedCampaigns} published`} />

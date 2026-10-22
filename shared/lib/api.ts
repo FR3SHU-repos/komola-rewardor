@@ -218,7 +218,7 @@ export async function rewardorApi<T>(path: string, options: RequestInit = {}, ac
 export const listRewardCampaigns = (options: RequestInit = {}) => rewardorApi<{ items: RewardCampaign[] }>("reward-campaigns", options);
 export const getPlatformLocations = (options: RequestInit = {}) => rewardorApi<{ items: PlatformLocation[] }>("locations", options);
 export const getRewardorBootstrap = (options: RequestInit = {}) => rewardorApi<RewardorBootstrap>("pos/bootstrap", options);
-export const getRewardorOverview = () => rewardorApi<RewardorOverview>("reward-campaigns/overview");
+export const getRewardorOverview = (options: RequestInit = {}) => rewardorApi<RewardorOverview>("reward-campaigns/overview", options);
 export const getRewardorClaims = (search = "", status = "", page = 1, options: RequestInit = {}) => {
   const params = new URLSearchParams();
   if (search.trim()) params.set("search", search.trim());

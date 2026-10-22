@@ -1,4 +1,136 @@
 @import "tailwindcss";
-:root { --background:#f8faf5; --foreground:#1c1917; --primary:#ff5733; --primary-hover:#b83218; --primary-foreground:#fff; --secondary:#ffd9cf; --secondary-subtle:#ffe9e3; --secondary-foreground:#b83218; --surface:#fff4ef; --card:#fff; --border:#f4c8bb; --border-focus:#ff9a80; --muted:#78716c; --heading:#b83218; --brand:#e94727; }
-@theme inline { --color-background:var(--background); --color-foreground:var(--foreground); --color-primary:var(--primary); --color-primary-hover:var(--primary-hover); --color-primary-foreground:var(--primary-foreground); --color-secondary:var(--secondary); --color-secondary-subtle:var(--secondary-subtle); --color-secondary-foreground:var(--secondary-foreground); --color-surface:var(--surface); --color-surface-card:var(--card); --color-border:var(--border); --color-border-focus:var(--border-focus); --color-foreground-muted:var(--muted); --color-foreground-heading:var(--heading); --color-brand:var(--brand); --color-status-success:#b83218; --color-status-success-surface:#fff4ef; --color-status-warning:#b45309; --color-status-warning-surface:#fffbeb; --color-status-info:#b83218; --color-status-info-surface:#fff4ef; --color-status-danger:#b91c1c; --color-status-danger-surface:#fef2f2; }
-*{box-sizing:border-box} body{margin:0;background:var(--background);color:var(--foreground);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif} button,a,input,select,textarea{-webkit-tap-highlight-color:transparent}.scrollbar-hide{scrollbar-width:none}.scrollbar-hide::-webkit-scrollbar{display:none}
+
+:root {
+  --background: #eef0f2;
+  --foreground: #171717;
+  --primary: #ff5733;
+  --primary-hover: #1f1f1f;
+  --primary-foreground: #ffffff;
+  --secondary: #fff1eb;
+  --secondary-subtle: #f5f6f7;
+  --secondary-foreground: #b83218;
+  --surface: #f5f6f7;
+  --card: #ffffff;
+  --border: #dde2e5;
+  --border-focus: #ff9a80;
+  --muted: #6b7280;
+  --heading: #171717;
+  --brand: #ff5733;
+  --success: #15803d;
+  --success-surface: #f0fdf4;
+  --warning: #b47718;
+  --warning-surface: #fff5da;
+  --danger: #b24848;
+  --danger-surface: #fff0f0;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-subtle: var(--secondary-subtle);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-surface: var(--surface);
+  --color-surface-card: var(--card);
+  --color-border: var(--border);
+  --color-border-focus: var(--border-focus);
+  --color-foreground-muted: var(--muted);
+  --color-foreground-heading: var(--heading);
+  --color-brand: var(--brand);
+  --color-status-success: var(--success);
+  --color-status-success-surface: var(--success-surface);
+  --color-status-warning: var(--warning);
+  --color-status-warning-surface: var(--warning-surface);
+  --color-status-danger: var(--danger);
+  --color-status-danger-surface: var(--danger-surface);
+}
+
+* { box-sizing: border-box; }
+html { min-width: 320px; scroll-behavior: smooth; }
+body { margin: 0; background: var(--background); color: var(--foreground); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; text-rendering: geometricPrecision; }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; }
+:focus-visible { outline: 3px solid var(--border-focus); outline-offset: 3px; }
+
+.rewardor-shell { min-height: 100vh; background: var(--background); }
+.rewardor-skip-link { position: fixed; top: 12px; left: 12px; z-index: 100; transform: translateY(-160%); border-radius: 999px; background: var(--foreground); color: white; padding: 10px 15px; font-size: 12px; font-weight: 800; transition: transform .18s ease; }
+.rewardor-skip-link:focus { transform: translateY(0); }
+.rewardor-sidebar { position: fixed; inset: 0 auto 0 0; z-index: 30; display: flex; width: 264px; flex-direction: column; padding: 18px 14px 18px 18px; }
+.rewardor-brand, .rewardor-sidebar-nav, .rewardor-account { border: 1px solid var(--border); background: var(--card); box-shadow: 0 10px 24px rgb(23 23 23 / 4%); }
+.rewardor-brand { display: flex; align-items: center; gap: 12px; border-radius: 25px; padding: 15px 16px; }
+.rewardor-brand-mark { display: grid; height: 42px; width: 42px; place-items: center; border-radius: 14px; background: var(--primary); color: white; box-shadow: inset 0 -3px 0 rgb(184 50 24 / 18%); }
+.rewardor-brand-name { margin: 0; color: var(--foreground); font-size: 17px; font-weight: 900; letter-spacing: -.04em; }
+.rewardor-brand-subtitle { margin: 2px 0 0; color: var(--muted); font-size: 11px; font-weight: 700; }
+.rewardor-organization { display: flex; align-items: center; gap: 10px; margin-top: 14px; border: 1px solid var(--border); border-radius: 20px; background: var(--card); padding: 12px; box-shadow: 0 10px 24px rgb(23 23 23 / 4%); }
+.rewardor-organization-avatar, .rewardor-account-avatar, .rewardor-topbar-avatar { display: grid; flex: 0 0 auto; place-items: center; border-radius: 50%; background: var(--secondary); color: var(--secondary-foreground); font-size: 12px; font-weight: 900; }
+.rewardor-organization-avatar { height: 36px; width: 36px; border-radius: 12px; }
+.rewardor-organization-copy, .rewardor-account-copy, .rewardor-topbar-user-copy { min-width: 0; flex: 1; }
+.rewardor-organization-copy p, .rewardor-account-copy p { margin: 0; overflow: hidden; color: var(--foreground); font-size: 12px; font-weight: 850; text-overflow: ellipsis; white-space: nowrap; }
+.rewardor-organization-copy span, .rewardor-account-copy span { display: block; margin-top: 3px; overflow: hidden; color: var(--muted); font-size: 10px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.rewardor-organization > svg { color: var(--muted); }
+.rewardor-sidebar-nav { flex: 1; margin-top: 14px; overflow-y: auto; border-radius: 25px; padding: 18px 10px; }
+.rewardor-nav-label { margin: 0; padding: 0 12px 10px; color: var(--muted); font-size: 10px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
+.rewardor-nav-link { display: flex; min-height: 42px; align-items: center; gap: 12px; border-radius: 999px; padding: 11px 13px; color: var(--muted); font-size: 13px; font-weight: 750; transition: background .18s ease, color .18s ease, transform .18s ease; }
+.rewardor-nav-link:hover { background: var(--surface); color: var(--foreground); transform: translateX(2px); }
+.rewardor-nav-link.active { background: var(--foreground); color: white; box-shadow: 0 8px 18px rgb(23 23 23 / 12%); }
+.rewardor-nav-divider { margin: 20px 12px; border-top: 1px solid var(--border); }
+.rewardor-protected-label { display: flex; align-items: center; gap: 10px; padding: 0 13px; color: var(--muted); font-size: 10px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+.rewardor-account { display: flex; align-items: center; gap: 10px; margin-top: 14px; border-radius: 20px; padding: 12px; }
+.rewardor-account-avatar { height: 36px; width: 36px; }
+.rewardor-icon-button { display: inline-grid; height: 42px; width: 42px; flex: 0 0 auto; place-items: center; border: 1px solid var(--border); border-radius: 50%; background: var(--card); color: var(--muted); cursor: pointer; transition: border-color .18s ease, color .18s ease, transform .18s ease; }
+.rewardor-icon-button:hover { border-color: var(--foreground); color: var(--foreground); transform: translateY(-1px); }
+.rewardor-main { min-height: 100vh; margin-left: 264px; }
+.rewardor-topbar { display: flex; min-height: 68px; align-items: center; justify-content: space-between; gap: 16px; margin: 18px 22px 0; border: 1px solid var(--border); border-radius: 25px; background: rgb(255 255 255 / 86%); padding: 0 18px 0 22px; box-shadow: 0 10px 24px rgb(23 23 23 / 4%); backdrop-filter: blur(16px); }
+.rewardor-topbar-heading { display: flex; min-width: 0; align-items: center; gap: 12px; }
+.rewardor-topbar-kicker { margin: 0; color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.rewardor-topbar-title { margin: 2px 0 0; color: var(--foreground); font-size: 16px; font-weight: 900; }
+.rewardor-topbar-user { display: flex; align-items: center; gap: 10px; }
+.rewardor-topbar-avatar { height: 34px; width: 34px; }
+.rewardor-topbar-user-copy { display: grid; gap: 2px; }
+.rewardor-topbar-user-copy strong { overflow: hidden; color: var(--foreground); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.rewardor-topbar-user-copy small { color: var(--muted); font-size: 10px; }
+.rewardor-mobile-menu-toggle { display: none; }
+.rewardor-shell-notice { display: flex; align-items: flex-start; gap: 10px; margin: 16px 22px 0; border: 1px solid #efcaca; border-radius: 18px; background: var(--danger-surface); color: var(--danger); padding: 14px 16px; font-size: 12px; font-weight: 700; line-height: 1.5; }
+.rewardor-main > header:not(.rewardor-topbar) { border-bottom-color: var(--border); background: transparent; padding-top: 30px; padding-bottom: 22px; }
+.rewardor-main > header:not(.rewardor-topbar) h1 { letter-spacing: -.045em; }
+.rewardor-mobile-drawer, .rewardor-mobile-backdrop { display: none; }
+.rewardor-state { display: flex; min-height: 120px; align-items: center; justify-content: center; gap: 10px; border: 1px dashed var(--border); border-radius: 20px; background: var(--card); color: var(--muted); padding: 24px; font-size: 13px; font-weight: 700; text-align: center; }
+.rewardor-state-icon { flex: 0 0 auto; color: var(--primary); }
+.rewardor-spin { animation: rewardor-spin 1s linear infinite; }
+.rewardor-empty-state { display: grid; gap: 5px; }
+.rewardor-empty-state strong { color: var(--foreground); font-size: 14px; }
+.rewardor-empty-state span { font-weight: 500; }
+.rewardor-error-state { justify-content: flex-start; border-style: solid; border-color: #efcaca; background: var(--danger-surface); color: var(--danger); text-align: left; }
+.rewardor-error-state > div { display: grid; gap: 4px; flex: 1; }
+.rewardor-error-state strong { color: var(--danger); font-size: 13px; }
+.rewardor-error-state span { font-weight: 600; line-height: 1.5; }
+.rewardor-state-action { min-height: 40px; border: 1px solid var(--danger); border-radius: 999px; background: transparent; color: var(--danger); padding: 0 14px; font-size: 12px; font-weight: 850; cursor: pointer; }
+.rewardor-hero-cta { border: 1px solid rgb(255 255 255 / 35%); background: var(--secondary); color: var(--secondary-foreground); box-shadow: 0 8px 18px rgb(23 23 23 / 10%); }
+.rewardor-hero-cta:hover { background: white; color: var(--secondary-foreground); }
+@keyframes rewardor-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+
+@media (max-width: 1023px) {
+  .rewardor-sidebar { display: none; }
+  .rewardor-main { margin-left: 0; }
+  .rewardor-mobile-menu-toggle { display: inline-grid; }
+  .rewardor-topbar { margin: 12px 16px 0; }
+  .rewardor-main > header:not(.rewardor-topbar) { padding-top: 24px; padding-bottom: 18px; }
+  .rewardor-topbar-user-copy, .rewardor-topbar-user > .rewardor-icon-button { display: none; }
+  .rewardor-mobile-backdrop { position: fixed; inset: 0; z-index: 40; display: block; border: 0; background: rgb(23 23 23 / 42%); cursor: pointer; }
+  .rewardor-mobile-drawer { position: fixed; inset: 0 auto 0 0; z-index: 50; display: flex; width: min(86vw, 340px); flex-direction: column; transform: translateX(-105%); border-right: 1px solid var(--border); background: var(--card); padding: 18px 14px; box-shadow: 18px 0 42px rgb(23 23 23 / 14%); transition: transform .2s ease; }
+  .rewardor-mobile-drawer.open { transform: translateX(0); }
+  .rewardor-mobile-drawer-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--border); padding: 4px 4px 18px; }
+  .rewardor-mobile-drawer-head strong { color: var(--foreground); font-size: 16px; }
+  .rewardor-mobile-nav { margin-top: 18px; }
+}
+
+@media (max-width: 560px) {
+  .rewardor-topbar { min-height: 60px; border-radius: 20px; padding: 0 12px 0 16px; }
+  .rewardor-topbar-title { font-size: 14px; }
+  .rewardor-shell-notice { margin: 12px 16px 0; }
+}
