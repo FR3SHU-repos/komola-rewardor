@@ -1,9 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { BarChart3, ChevronDown, Gift, HelpCircle, LayoutDashboard, LogOut, Megaphone, Settings, ShieldCheck } from "lucide-react";
+import {
+  BarChart3,
+  ChevronDown,
+  Gift,
+  HelpCircle,
+  LayoutDashboard,
+  LogOut,
+  Megaphone,
+  Menu,
+  Settings,
+  ShieldCheck,
+  X,
+} from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getRewardorBootstrap, type RewardorBootstrap } from "@/shared/lib/api";
 import { createAuthBrowserClient } from "@/shared/lib/supabase/auth-client";
 
@@ -17,20 +29,81 @@ const nav = [
 ];
 
 function initials(value: string): string {
-  return value.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "K";
+  return (
+    value
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase() || "K"
+  );
+}
+
+function isActivePath(path: string, href: string): boolean {
+  return path === href || (href !== "/" && path.startsWith(`${href}/`));
 }
 
 export function RewardorShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const [workspace, setWorkspace] = useState<RewardorBootstrap | null>(null);
+  const [workspaceError, setWorkspaceError] = useState("");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const mobileDrawerRef = useRef<HTMLElement>(null);
+  const lastFocusedElement = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    let alive = true;
-    void getRewardorBootstrap().then((result) => {
-      if (alive && result.success && result.data) setWorkspace(result.data);
-    });
-    return () => { alive = false; };
+    const controller = new AbortController();
+    let active = true;
+
+    getRewardorBootstrap({ signal: controller.signal })
+      .then((result) => {
+        if (!active || controller.signal.aborted) return;
+        if (result.success && result.data) {
+          setWorkspace(result.data);
+          setWorkspaceError("");
+        } else {
+          setWorkspaceError(result.message || "Workspace access could not be verified.");
+        }
+      })
+      .catch((error: unknown) => {
+        if (!active || controller.signal.aborted) return;
+        setWorkspaceError(error instanceof Error ? error.message : "Workspace access could not be verified.");
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
   }, []);
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    lastFocusedElement.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const drawer = mobileDrawerRef.current;
+    const getFocusable = () => Array.from(drawer?.querySelectorAll<HTMLElement>("a[href], button:not([disabled])") ?? []);
+    getFocusable()[0]?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileMenuOpen(false);
+      if (event.key !== "Tab") return;
+      const focusable = getFocusable();
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      lastFocusedElement.current?.focus();
+    };
+  }, [mobileMenuOpen]);
 
   const user = workspace?.user;
   const organization = workspace?.organization;
@@ -44,13 +117,79 @@ export function RewardorShell({ children }: { children: React.ReactNode }) {
     window.location.assign("/login?next=/");
   }
 
-  return <div className="min-h-screen lg:flex">
-    <aside className="hidden w-72 shrink-0 border-r border-border bg-surface-card lg:flex lg:flex-col">
-      <div className="flex h-20 items-center gap-3 border-b border-border px-7"><div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground"><Gift size={21}/></div><div><p className="m-0 text-lg font-black tracking-tight text-foreground-heading">KOMOLA</p><p className="m-0 text-xs font-semibold text-foreground-muted">Rewardor workspace</p></div></div>
-      <div className="border-b border-border p-5"><button className="flex w-full items-center gap-3 rounded-2xl border border-border bg-surface px-3 py-3 text-left" type="button"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary font-bold text-primary">{initials(organizationName)}</div><div className="min-w-0 flex-1"><p className="m-0 truncate text-sm font-bold text-foreground-heading">{organizationName}</p><p className="m-0 text-xs text-foreground-muted">Shared KOMOLA organization</p></div><ChevronDown size={16} className="text-foreground-muted"/></button></div>
-      <nav className="flex-1 space-y-1 p-5">{nav.map(({ href, label, icon: Icon }) => <Link key={href} href={href} className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition ${path === href || path.startsWith(`${href}/`) ? "bg-primary text-primary-foreground" : "text-foreground-muted hover:bg-surface hover:text-foreground-heading"}`}><Icon size={18}/>{label}</Link>)}<div className="my-5 border-t border-border"/><div className="flex items-center gap-3 px-3 py-3 text-xs font-semibold uppercase tracking-wider text-foreground-muted"><ShieldCheck size={16}/> Protected workspace</div></nav>
-      <div className="border-t border-border p-5"><div className="flex items-center gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-sm font-bold text-primary">{initials(userName)}</div><div className="min-w-0 flex-1"><p className="m-0 truncate text-sm font-bold text-foreground-heading">{userName}</p><p className="m-0 text-xs text-foreground-muted">{role}</p></div><button type="button" onClick={() => void signOut()} aria-label="Sign out" title="Sign out" className="rounded-lg p-2 text-foreground-muted transition hover:bg-surface hover:text-foreground-heading"><LogOut size={16}/></button></div></div>
-    </aside>
-    <main className="min-w-0 flex-1">{children}</main>
-  </div>;
+  function renderNavigation(className: string) {
+    return (
+      <nav className={className} aria-label="Rewardor workspace">
+        <div className="rewardor-nav-label">Workspace</div>
+        {nav.map(({ href, label, icon: Icon }) => {
+          const active = isActivePath(path, href);
+          return (
+            <Link
+              key={href}
+              href={href}
+              onClick={() => setMobileMenuOpen(false)}
+              aria-current={active ? "page" : undefined}
+              className={`rewardor-nav-link ${active ? "active" : ""}`}
+            >
+              <Icon size={17} aria-hidden="true" />
+              <span>{label}</span>
+            </Link>
+          );
+        })}
+        <div className="rewardor-nav-divider" />
+        <div className="rewardor-protected-label">
+          <ShieldCheck size={16} aria-hidden="true" />
+          <span>Protected workspace</span>
+        </div>
+      </nav>
+    );
+  }
+
+  return (
+    <div className="rewardor-shell">
+      <a className="rewardor-skip-link" href="#main-content">Skip to content</a>
+      <aside className="rewardor-sidebar">
+        <div className="rewardor-brand">
+          <div className="rewardor-brand-mark" aria-hidden="true"><Gift size={21} /></div>
+          <div><p className="rewardor-brand-name">KOMOLA</p><p className="rewardor-brand-subtitle">Rewardor workspace</p></div>
+        </div>
+        <div className="rewardor-organization" aria-label="Current organization">
+          <div className="rewardor-organization-avatar" aria-hidden="true">{initials(organizationName)}</div>
+          <div className="rewardor-organization-copy"><p>{organizationName}</p><span>Shared KOMOLA organization</span></div>
+          <ChevronDown size={16} aria-hidden="true" />
+        </div>
+        {renderNavigation("rewardor-sidebar-nav")}
+        <div className="rewardor-account">
+          <div className="rewardor-account-avatar" aria-hidden="true">{initials(userName)}</div>
+          <div className="rewardor-account-copy"><p>{userName}</p><span>{role}</span></div>
+          <button type="button" onClick={() => void signOut()} aria-label="Sign out" title="Sign out" className="rewardor-icon-button"><LogOut size={16} aria-hidden="true" /></button>
+        </div>
+      </aside>
+
+      {mobileMenuOpen ? <button className="rewardor-mobile-backdrop" type="button" aria-label="Close navigation" onClick={() => setMobileMenuOpen(false)} /> : null}
+      <aside ref={mobileDrawerRef} className={`rewardor-mobile-drawer ${mobileMenuOpen ? "open" : ""}`} role="dialog" aria-modal="true" aria-label="Mobile navigation" aria-hidden={!mobileMenuOpen}>
+        <div className="rewardor-mobile-drawer-head">
+          <div><p className="rewardor-nav-label">KOMOLA / Rewardor</p><strong>Workspace navigation</strong></div>
+          <button type="button" className="rewardor-icon-button" onClick={() => setMobileMenuOpen(false)} aria-label="Close navigation"><X size={18} aria-hidden="true" /></button>
+        </div>
+        {renderNavigation("rewardor-mobile-nav")}
+      </aside>
+
+      <main id="main-content" className="rewardor-main">
+        <header className="rewardor-topbar">
+          <div className="rewardor-topbar-heading">
+            <div><p className="rewardor-topbar-kicker">KOMOLA / Rewardor</p><p className="rewardor-topbar-title">Campaign operations</p></div>
+            <button type="button" className="rewardor-icon-button rewardor-mobile-menu-toggle" onClick={() => setMobileMenuOpen(true)} aria-label="Open navigation" aria-expanded={mobileMenuOpen}><Menu size={18} aria-hidden="true" /></button>
+          </div>
+          <div className="rewardor-topbar-user">
+            <span className="rewardor-topbar-avatar" aria-hidden="true">{initials(userName)}</span>
+            <span className="rewardor-topbar-user-copy"><strong>{userName}</strong><small>{role}</small></span>
+            <button type="button" className="rewardor-icon-button" onClick={() => void signOut()} aria-label="Sign out" title="Sign out"><LogOut size={15} aria-hidden="true" /></button>
+          </div>
+        </header>
+        {workspaceError ? <div className="rewardor-shell-notice" role="alert"><ShieldCheck size={16} aria-hidden="true" /><span>{workspaceError}</span></div> : null}
+        {children}
+      </main>
+    </div>
+  );
 }

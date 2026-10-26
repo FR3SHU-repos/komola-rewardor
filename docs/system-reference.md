@@ -330,6 +330,22 @@ plugins are compatible. If lint fails because of repository configuration (for
 example a missing plugin rule), record that exact limitation rather than
 silently treating lint as passed.
 
+### 10.1 UI design alignment
+
+Rewardor follows the Admin application's workspace principles:
+
+- a neutral gray application canvas with white, rounded content surfaces;
+- a compact orange brand accent and dark active navigation state;
+- a persistent desktop workspace rail with a responsive mobile drawer;
+- explicit loading, empty, and error states for data-driven screens; and
+- keyboard-accessible navigation, including a skip link, Escape-to-close, focus
+  trapping, and focus restoration for the mobile drawer.
+
+The shared visual tokens and shell styles live in `app/globals.css` and
+`shared/components/RewardorShell.tsx`. Reuse those primitives when adding new
+workspace pages so the campaign, claims, analytics, and settings areas keep the
+same hierarchy and interaction model.
+
 For code changes, read `AGENTS.md` and `GIT_RULES.md` first. For API changes,
 update the Go API handlers/repository/OpenAPI contract and the shared
 Rewardor API document before updating UI call sites.
